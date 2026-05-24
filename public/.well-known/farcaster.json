@@ -11,5 +11,10 @@
     "subtitle": "Connect and Share",
     "description": "My first app",
     "primaryCategory": "social"
+  },
+  "accountAssociation": {
+    "header": "eyJmaWQiOjUxNjU2NiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweEUzQjkyNTg1ODIyNUE0ZDBiOTYzYjNiNTNDYTQ3OUVjNTFCZTE3ZmMifQ",
+    "payload": "eyJkb21haW4iOiJiYXNlY2l0eS1ob21lLnZlcmNlbC5hcHAifQ",
+    "signature": "qI3g2n1Lq0w/f7IDnrINrytsnbsD+njTOK/+lKg9IFVBACt6pUaKBgGTkpzyzb8x0AANo9F6bEHhyko3bbCDfxs="
   }
 }

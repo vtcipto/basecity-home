@@ -23,7 +23,7 @@ export default function BaseCityHome() {
     if (savedCount) setBaseCount(parseInt(savedCount, 10))
   }, [])
 
-  // 📱 MOBİL WARPCAST CÜZDAN SİSTEMİNİ TETİKLEYEN ANA MOTOR
+  // Mobil Warpcast Cüzdan Sistemini Tetikleyen Ana Motor
   useEffect(() => {
     const initFrame = async () => {
       try {
@@ -36,7 +36,6 @@ export default function BaseCityHome() {
           if (context?.user?.username) {
             setUsername('@' + context.user.username)
           }
-          // Farcaster kullanıcısının bağlı cüzdan adresini otomatik çeker
           if (context?.user?.address) {
             setUserAddress(context.user.address)
             setIsWalletConnected(true)
@@ -49,15 +48,21 @@ export default function BaseCityHome() {
     initFrame()
   }, [])
 
-  // Normal tarayıcılar için yedek manuel bağlantı butonu
+  // Normal tarayıcılar için yedek cüzdan bağlantı motoru (Syntax hatası sıfırlandı)
   const handleConnectWallet = async () => {
-    if (sdkInstance?.actions?.connectWallet) {
+    if (typeof window !== 'undefined' && window.ethereum) {
       try {
-        const provider = await sdkInstance.actions.connectWallet()
-        const accounts = await provider.request({ method: 'eth_accounts' })
-        if (accounts?.[0]) {
-          setUserAddress(accounts[0])
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
+        if (accounts && accounts.length > 0) {
+          const address = accounts[0]
+          setUserAddress(address)
+          if (!username) setUsername(address.substring(0, 6) + "..." + address.substring(address.length - 4))
           setIsWalletConnected(true)
+          
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x2105' }],
+          })
         }
       } catch (e) {
         simulateConnection()
@@ -68,7 +73,7 @@ export default function BaseCityHome() {
   }
 
   const simulateConnection = () => {
-    setUserAddress("0x3d5A...9b8D")
+    setUserAddress("0x3d5A744471810B3478bbE7701e7711D740059b8D")
     setUsername("@guest_builder")
     setIsWalletConnected(true)
   }
@@ -81,13 +86,11 @@ export default function BaseCityHome() {
     setTxHash('')
   }
 
-  // 💸 MOBİLDE %100 GERÇEK USDC TRANSFER ONAYINI AÇAN SMART FONKSİYON
+  // 💸 Mobilde ve Masaüstünde Gerçek USDC Transfer Onayı Tetikleyici Motoru
   const handleCheckInWithUSDC = async () => {
     setTxLoading(true)
     
     try {
-      // Farcaster v2 standartlarına uygun kurumsal onchain transfer emri
-      // USDC Transfer (0.01 USDC = 10000 birim / Hex: 0x2710)
       const cleanReceiver = RECEIVER_ADDRESS.replace("0x", "").toLowerCase().padStart(64, "0")
       const cleanAmount = "2710".padStart(64, "0")
       const transferData = "0xa9059cbb" + cleanReceiver + cleanAmount
@@ -95,9 +98,8 @@ export default function BaseCityHome() {
       let txResultHash = ""
 
       if (sdkInstance?.actions?.sendTransaction) {
-        // Telefonda/Warpcast içinde gerçek imza ekranını şak diye açar
         txResultHash = await sdkInstance.actions.sendTransaction({
-          chainId: 8453, // Base Mainnet ID
+          chainId: 8453,
           to: BASE_USDC_ADDRESS,
           data: transferData,
           value: "0"
@@ -113,7 +115,6 @@ export default function BaseCityHome() {
           }]
         })
       } else {
-        // Test modunda kilitlenmeyi önleyen yapay Tx Hash üretici
         txResultHash = "0x" + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('')
       }
 
@@ -122,7 +123,7 @@ export default function BaseCityHome() {
         const newCount = baseCount + 1
         setBaseCount(newCount)
         localStorage.setItem('basecity_global_total_count_v6', newCount.toString())
-        setHasCheckedIn(true) // Paylaşma ve Basescan butonlarını açar
+        setHasCheckedIn(true)
       }
     } catch (e) {
       console.error("Tx Error:", e)
@@ -132,16 +133,19 @@ export default function BaseCityHome() {
     }
   }
 
+  // 📢 UYGULAMANIN RESMİ CANLI KENDİ LİNKİNİ FIRTLATAN AKTİF PAYLAŞIM MOTORU
   const handleShareOnWarpcast = () => {
-    const shareText = `🔵 I just checked into BaseCity Home as a verified Base builder! 💸 Signed 0.01 USDC on-chain.\n\nTrack my verification on Basescan: https://basescan.org{txHash} 🚀`
-    window.open('https://warpcast.com' + encodeURIComponent(shareText), '_blank')
+    const appUrl = "https://vercel.app"
+    const shareText = `🔵 I just checked into BaseCity Home as a verified Base builder! 💸 Signed 0.01 USDC on-chain.\n\nTrack my verification on Basescan: https://basescan.org{txHash}\n\nVerify your builder spot now! 👇`
+    
+    // Warpcast Frame standartlarına en uyumlu resmi yönlendirme protokolü
+    window.open(`https://warpcast.com{encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(appUrl)}`, '_blank')
   }
 
   const buttonStyle = { backgroundColor: '#0052FF', color: '#FFFFFF', border: 'none', padding: '16px 30px', fontSize: '16px', fontWeight: 'bold', borderRadius: '14px', width: '100%', cursor: 'pointer', display: 'block', textAlign: 'center', WebkitTapHighlightColor: 'transparent', transition: 'background 0.2s' };
 
   return (
     <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#0052FF', color: '#FFFFFF', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', padding: '15px', boxSizing: 'border-box' }}>
-      {/* Mobilde Ekrana Kusursuz Oturan Responsive Kart Yapısı */}
       <div style={{ backgroundColor: '#0a192f', padding: '25px 20px', borderRadius: '24px', maxWidth: '400px', width: '100%', position: 'relative', boxShadow: '0 12px 40px rgba(0,0,0,0.6)', boxSizing: 'border-box' }}>
         
         {/* Üst Menü / Disconnect Alanı */}

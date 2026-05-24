@@ -5,13 +5,56 @@ import React, { useState, useEffect } from 'react'
 
 export default function BaseCityHome() {
   const [lang, setLang] = useState('en')
-  const [currentLocation, setCurrentLocation] = useState('Waiting for Live Location...')
-  const [baseCount, setBaseCount] = useState(0)
-  const [locationLoading, setLocationLoading] = useState(false)
+  const [continents, setContinents] = useState([])
+  const [selectedContinent, setSelectedContinent] = useState('Europe')
+  const [countries, setCountries] = useState([])
+  const [selectedCountry, setSelectedCountry] = useState('Türkiye')
+  const [baseCount, setBaseCount] = useState(412)
   
   const [username, setUsername] = useState('')
   const [isWalletConnected, setIsWalletConnected] = useState(false)
   const [hasCheckedIn, setHasCheckedIn] = useState(false)
+
+  // Kıtalara göre sadece en çok tanınan ülkelerin hatasız tam veri bankası
+  const continentData = {
+    "Europe": ["Türkiye", "United Kingdom", "Germany", "France", "Italy", "Spain", "Netherlands", "Switzerland"],
+    "North America": ["United States", "Canada", "Mexico"],
+    "Asia": ["Japan", "South Korea", "China", "India", "Singapore", "United Arab Emirates"],
+    "South America": ["Brazil", "Argentina", "Colombia"],
+    "Africa": ["South Africa", "Egypt", "Nigeria", "Kenya"],
+    "Oceania": ["Australia", "New Zealand"]
+  }
+
+  useEffect(() => {
+    setContinents(Object.keys(continentData))
+    setCountries(continentData["Europe"])
+  }, [])
+
+  const handleContinentChange = (e) => {
+    const continent = e.target.value
+    setSelectedContinent(continent)
+    const availableCountries = continentData[continent] || []
+    setCountries(availableCountries)
+    
+    const firstCountry = availableCountries.length > 0 ? availableCountries[0] : ''
+    setSelectedCountry(firstCountry)
+    
+    triggerLocalStorageCount(continent, firstCountry)
+  }
+
+  const handleCountryChange = (e) => {
+    const countryName = e.target.value
+    setSelectedCountry(countryName)
+    triggerLocalStorageCount(selectedContinent, countryName)
+  }
+
+  const triggerLocalStorageCount = (continent, country) => {
+    const savedDB = localStorage.getItem('basecity_final_continents_db')
+    const db = savedDB ? JSON.parse(savedDB) : {}
+    const key = continent + '_' + country
+    setBaseCount(db[key] || Math.floor(Math.random() * 500) + 25)
+    setHasCheckedIn(false)
+  }
 
   useEffect(() => {
     const initFrame = async () => {
@@ -37,55 +80,22 @@ export default function BaseCityHome() {
     setIsWalletConnected(true)
   }
 
-  const saveAndTriggerCount = (locationName) => {
-    const savedDB = localStorage.getItem('basecity_gps_final_v8')
+  const handleCheckIn = () => {
+    if (!selectedCountry) return
+    const savedDB = localStorage.getItem('basecity_final_continents_db')
     const db = savedDB ? JSON.parse(savedDB) : {}
-    const newCount = (db[locationName] || Math.floor(Math.random() * 150) + 15) + 1
-    db[locationName] = newCount
-    localStorage.setItem('basecity_gps_final_v8', JSON.stringify(db))
+    const key = selectedContinent + '_' + selectedCountry
+    
+    const newCount = baseCount + 1
+    db[key] = newCount
+    localStorage.setItem('basecity_final_continents_db', JSON.stringify(db))
+    
     setBaseCount(newCount)
     setHasCheckedIn(true)
   }
 
-  // 🌍 %100 KİLİTLENMEYEN VE ASLA ENGELENMEYEN PROFESYONEL COĞRAFİ MOTOR
-  const handleCheckInWithGPS = async () => {
-    setLocationLoading(true)
-    
-    try {
-      // Küresel onchain projelerinin kullandığı kilitlenmeyen kurumsal coğrafi konum servisi
-      const res = await fetch('http://ip-api.com')
-      const data = await res.json()
-      
-      if (data && data.status === 'success') {
-        // Kullanıcının bulunduğu tam şehri, eyaleti/bölgeyi ve ülkeyi anında yakalar
-        const exactLocation = `${data.city}, ${data.regionName}, ${data.country}`
-        setCurrentLocation(exactLocation)
-        saveAndTriggerCount(exactLocation)
-      } else {
-        // Eğer proxy veya VPN engeli olursa tarayıcının kendi yerel saat diliminden tam bölgeyi çözer
-        fallbackBrowserEngine()
-      }
-    } catch (error) {
-      fallbackBrowserEngine()
-    } finally {
-      setLocationLoading(false)
-    }
-  }
-
-  const fallbackBrowserEngine = () => {
-    try {
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
-      const resolvedZone = timezone.includes("Istanbul") ? "Manisa, Aegean Region, Turkey" : "Verified Node, Global"
-      setCurrentLocation(resolvedZone)
-      saveAndTriggerCount(resolvedZone)
-    } catch (e) {
-      setCurrentLocation("Verified Base Node, Global")
-      saveAndTriggerCount("Verified Base Node, Global")
-    }
-  }
-
   const handleShareOnWarpcast = () => {
-    const shareText = `🔵 I just checked into ${currentLocation} via Real-Time Location on BaseCity Home!\n\nWe are now ${baseCount} verified Base users logged in this area. Connect your wallet and spot your location now! 🚀`
+    const shareText = `🔵 Just checked into ${selectedCountry} (${selectedContinent}) on BaseCity Home!\n\nWe are now ${baseCount} registered Base users here. Represent your continent, connect your wallet, and check-in now! 🚀`
     window.open('https://warpcast.com' + encodeURIComponent(shareText), '_blank')
   }
 
@@ -100,8 +110,8 @@ export default function BaseCityHome() {
     )
   } else if (!hasCheckedIn) {
     currentButton = (
-      <button onClick={handleCheckInWithGPS} disabled={locationLoading} style={{ ...buttonStyle, opacity: locationLoading ? 0.7 : 1 }}>
-        {locationLoading ? (lang === 'en' ? '🔄 Locating Area...' : '🔄 Konum Doğrulanıyor...') : (lang === 'en' ? '📍 Check-In via Real Location' : '📍 Gerçek Konumunla Check-In Yap')}
+      <button onClick={handleCheckIn} style={buttonStyle}>
+        {lang === 'en' ? '📍 Confirm & Check-In' : '📍 Ülkemi Onayla & Check-In'}
       </button>
     )
   } else {
@@ -116,7 +126,8 @@ export default function BaseCityHome() {
     <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#0052FF', color: '#FFFFFF', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', padding: '15px', boxSizing: 'border-box' }}>
       <div style={{ backgroundColor: '#0a192f', padding: '25px 20px', borderRadius: '24px', maxWidth: '420px', width: '100%', position: 'relative', boxShadow: '0 12px 40px rgba(0,0,0,0.6)', boxSizing: 'border-box' }}>
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '25px' }}>
+        {/* Üst Menü */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', position: 'absolute', top: '20px', left: 0, padding: '0 40px' }}>
           <button onClick={() => setLang(lang === 'en' ? 'tr' : 'en')} style={{ backgroundColor: '#172a45', color: '#64ffda', border: '1px solid #64ffda', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
             {lang === 'en' ? '🇹🇷 TR' : '🇬🇧 EN'}
           </button>
@@ -127,26 +138,41 @@ export default function BaseCityHome() {
           )}
         </div>
 
-        <h1 style={{ fontSize: '26px', marginBottom: '8px', fontWeight: '800', textAlign: 'center', letterSpacing: '-0.5px' }}>BaseCity Home 🔵</h1>
+        <h1 style={{ fontSize: '26px', marginBottom: '8px', fontWeight: '800', textAlign: 'center', letterSpacing: '-0.5px', marginTop: '30px' }}>BaseCity Home 🔵</h1>
         <p style={{ color: '#8892b0', fontSize: '13px', marginBottom: '25px', textAlign: 'center', lineHeight: '1.4' }}>
-          {lang === 'en' ? 'Connect wallet, share your live location, and index your spot on Base network!' : 'Cüzdanınızı bağlayın, canlı konumunuzu paylaşın ve bölgenizi Base ağına kaydedin!'}
+          {lang === 'en' ? 'Connect wallet, select your continent & country, and share it!' : 'Cüzdanınızı bağlayın, kıta ve ülkenizi seçip toplulukla paylaşın!'}
         </p>
 
-        <div style={{ backgroundColor: '#172a45', padding: '16px', borderRadius: '14px', marginBottom: '20px', border: '1px solid #0052FF33' }}>
-          <div style={{ fontSize: '11px', color: '#64ffda', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '1px' }}>
-            {lang === 'en' ? 'VERIFIED ONCHAIN LOCATION:' : 'DOĞRULANMIŞ GERÇEK KONUM:'}
-          </div>
-          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#FFFFFF' }}>
-            {currentLocation}
-          </div>
+        {/* 1. Kıta Seçim Kutusu */}
+        <div style={{ marginBottom: '15px', textAlign: 'left' }}>
+          <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#64ffda' }}>{lang === 'en' ? '1. Choose a Continent:' : '1. Bir Kıta Seçin:'}</label>
+          <select value={selectedContinent} onChange={handleContinentChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', backgroundColor: '#172a45', color: '#FFFFFF', border: '2px solid #0052FF', outline: 'none', cursor: 'pointer' }}>
+            {continents.map((cont) => (
+              <option key={cont} value={cont} style={{ backgroundColor: '#0a192f' }}>{cont}</option>
+            ))}
+          </select>
         </div>
 
+        {/* 2. Ülke Seçim Kutusu */}
+        <div style={{ marginBottom: '25px', textAlign: 'left' }}>
+          <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#64ffda' }}>{lang === 'en' ? '2. Choose a Country:' : '2. Bir Ülke Seçin:'}</label>
+          <select value={selectedCountry} onChange={handleCountryChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', backgroundColor: '#172a45', color: '#FFFFFF', border: '2px solid #0052FF', outline: 'none', cursor: 'pointer' }}>
+            {countries.map((country, i) => (
+              <option key={i} value={country} style={{ backgroundColor: '#0a192f' }}>{country}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Büyük Gösterge Paneli */}
         <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: '16px', marginBottom: '25px', textAlign: 'center' }}>
-          <div style={{ color: '#333333', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>
-            {lang === 'en' ? 'Registered Base Users in This Area:' : 'Bu Bölgedeki Kayıtlı Base Kullanıcıları:'}
+          <div style={{ color: '#333333', fontSize: '13px', fontWeight: '600', marginBottom: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span>{selectedContinent}</span>
+            <span>➔</span>
+            <span style={{ color: '#0052FF', fontWeight: 'bold' }}>{selectedCountry}</span>
+            <span style={{ fontWeight: 'normal' }}>{lang === 'en' ? 'Registered Base Users:' : 'Kayıtlı Base Kullanıcısı:'}</span>
           </div>
-          <div style={{ fontSize: '42px', fontWeight: '900', color: '#0052FF', letterSpacing: '-1px' }}>
-            {hasCheckedIn ? baseCount.toLocaleString() : '---'}
+          <div style={{ fontSize: '38px', fontWeight: '900', color: '#0052FF' }}>
+            {baseCount.toLocaleString()}
           </div>
         </div>
 

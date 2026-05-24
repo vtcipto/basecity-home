@@ -137,7 +137,9 @@ export default function BaseCityHome() {
           )}
         </div>
 
-        <h1 style={{ fontSize: '26px', marginBottom: '5px', fontWeight: 'bold', marginTop: '30px', textAlign: 'center' }}>BaseCity Home</h1>
+        <h1 style={{ fontSize: '26px', marginBottom: '5px', fontWeight: 'bold', marginTop: '30px', textAlign: 'center' }}>
+  BaseCity Home 🔵
+</h1>
         <p style={{ color: '#8892b0', fontSize: '13px', marginBottom: '25px', textAlign: 'center' }}>
           {lang === 'en' ? 'Connect wallet, share your live GPS location, and see local onchain stats!' : 'Cüzdanınızı bağlayın, canlı GPS konumunuzu paylaşın ve bölgenizdeki onchain istatistikleri görün!'}
         </p>

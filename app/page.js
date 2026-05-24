@@ -5,57 +5,20 @@ import React, { useState, useEffect } from 'react'
 
 export default function BaseCityHome() {
   const [lang, setLang] = useState('en')
-  const [continents, setContinents] = useState([])
-  const [selectedContinent, setSelectedContinent] = useState('Europe')
-  const [countries, setCountries] = useState([])
-  const [selectedCountry, setSelectedCountry] = useState('Türkiye')
-  const [baseCount, setBaseCount] = useState(412)
-  
+  const [baseCount, setBaseCount] = useState(1420) // Küresel Base kullanıcı başlangıç sayacı
   const [username, setUsername] = useState('')
   const [isWalletConnected, setIsWalletConnected] = useState(false)
   const [hasCheckedIn, setHasCheckedIn] = useState(false)
 
-  // Kıtalara göre sadece en çok tanınan ülkelerin hatasız tam veri bankası
-  const continentData = {
-    "Europe": ["Türkiye", "United Kingdom", "Germany", "France", "Italy", "Spain", "Netherlands", "Switzerland"],
-    "North America": ["United States", "Canada", "Mexico"],
-    "Asia": ["Japan", "South Korea", "China", "India", "Singapore", "United Arab Emirates"],
-    "South America": ["Brazil", "Argentina", "Colombia"],
-    "Africa": ["South Africa", "Egypt", "Nigeria", "Kenya"],
-    "Oceania": ["Australia", "New Zealand"]
-  }
-
+  // Sayfa açıldığında yerel hafızadan toplam check-in sayısını çeker
   useEffect(() => {
-    setContinents(Object.keys(continentData))
-    setCountries(continentData["Europe"])
+    const savedCount = localStorage.getItem('basecity_global_total_count')
+    if (savedCount) {
+      setBaseCount(parseInt(savedCount, 10))
+    }
   }, [])
 
-  const handleContinentChange = (e) => {
-    const continent = e.target.value
-    setSelectedContinent(continent)
-    const availableCountries = continentData[continent] || []
-    setCountries(availableCountries)
-    
-    const firstCountry = availableCountries.length > 0 ? availableCountries[0] : ''
-    setSelectedCountry(firstCountry)
-    
-    triggerLocalStorageCount(continent, firstCountry)
-  }
-
-  const handleCountryChange = (e) => {
-    const countryName = e.target.value
-    setSelectedCountry(countryName)
-    triggerLocalStorageCount(selectedContinent, countryName)
-  }
-
-  const triggerLocalStorageCount = (continent, country) => {
-    const savedDB = localStorage.getItem('basecity_final_continents_db')
-    const db = savedDB ? JSON.parse(savedDB) : {}
-    const key = continent + '_' + country
-    setBaseCount(db[key] || Math.floor(Math.random() * 500) + 25)
-    setHasCheckedIn(false)
-  }
-
+  // Farcaster SDK Entegrasyonu (Giriş Yapanı Otomatik Tanıma)
   useEffect(() => {
     const initFrame = async () => {
       try {
@@ -81,46 +44,18 @@ export default function BaseCityHome() {
   }
 
   const handleCheckIn = () => {
-    if (!selectedCountry) return
-    const savedDB = localStorage.getItem('basecity_final_continents_db')
-    const db = savedDB ? JSON.parse(savedDB) : {}
-    const key = selectedContinent + '_' + selectedCountry
-    
     const newCount = baseCount + 1
-    db[key] = newCount
-    localStorage.setItem('basecity_final_continents_db', JSON.stringify(db))
-    
     setBaseCount(newCount)
+    localStorage.setItem('basecity_global_total_count', newCount.toString())
     setHasCheckedIn(true)
   }
 
   const handleShareOnWarpcast = () => {
-    const shareText = `🔵 Just checked into ${selectedCountry} (${selectedContinent}) on BaseCity Home!\n\nWe are now ${baseCount} registered Base users here. Represent your continent, connect your wallet, and check-in now! 🚀`
+    const shareText = `🔵 I just checked into BaseCity Home as a verified Base user!\n\nThere are now ${baseCount} total builders checked-in globally. Connect your wallet and verify your spot now! 🚀`
     window.open('https://warpcast.com' + encodeURIComponent(shareText), '_blank')
   }
 
-  let currentButton = null
   const buttonStyle = { backgroundColor: '#0052FF', color: '#FFFFFF', border: 'none', padding: '16px 30px', fontSize: '16px', fontWeight: 'bold', borderRadius: '14px', width: '100%', cursor: 'pointer', display: 'block', textAlign: 'center', WebkitTapHighlightColor: 'transparent' };
-
-  if (!isWalletConnected) {
-    currentButton = (
-      <button onClick={handleConnectWallet} style={buttonStyle}>
-        {lang === 'en' ? '⚡ Connect Wallet' : '⚡ Cüzdan Bağla'}
-      </button>
-    )
-  } else if (!hasCheckedIn) {
-    currentButton = (
-      <button onClick={handleCheckIn} style={buttonStyle}>
-        {lang === 'en' ? '📍 Confirm & Check-In' : '📍 Ülkemi Onayla & Check-In'}
-      </button>
-    )
-  } else {
-    currentButton = (
-      <button onClick={handleShareOnWarpcast} style={{ ...buttonStyle, backgroundColor: '#64ffda', color: '#0a192f' }}>
-        {lang === 'en' ? '📢 Share on Warpcast' : '📢 Warpcast\'te Paylaş'}
-      </button>
-    )
-  }
 
   return (
     <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#0052FF', color: '#FFFFFF', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', padding: '15px', boxSizing: 'border-box' }}>
@@ -140,43 +75,33 @@ export default function BaseCityHome() {
 
         <h1 style={{ fontSize: '26px', marginBottom: '8px', fontWeight: '800', textAlign: 'center', letterSpacing: '-0.5px', marginTop: '30px' }}>BaseCity Home 🔵</h1>
         <p style={{ color: '#8892b0', fontSize: '13px', marginBottom: '25px', textAlign: 'center', lineHeight: '1.4' }}>
-          {lang === 'en' ? 'Connect wallet, select your continent & country, and share it!' : 'Cüzdanınızı bağlayın, kıta ve ülkenizi seçip toplulukla paylaşın!'}
+          {lang === 'en' ? 'Connect your Web3 wallet, confirm your check-in, and share your builder status with the Farcaster community!' : 'Web3 cüzdanınızı bağlayın, check-in işleminizi onaylayın ve builder durumunuzu Farcaster topluluğuyla paylaşın!'}
         </p>
 
-        {/* 1. Kıta Seçim Kutusu */}
-        <div style={{ marginBottom: '15px', textAlign: 'left' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#64ffda' }}>{lang === 'en' ? '1. Choose a Continent:' : '1. Bir Kıta Seçin:'}</label>
-          <select value={selectedContinent} onChange={handleContinentChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', backgroundColor: '#172a45', color: '#FFFFFF', border: '2px solid #0052FF', outline: 'none', cursor: 'pointer' }}>
-            {continents.map((cont) => (
-              <option key={cont} value={cont} style={{ backgroundColor: '#0a192f' }}>{cont}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* 2. Ülke Seçim Kutusu */}
-        <div style={{ marginBottom: '25px', textAlign: 'left' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#64ffda' }}>{lang === 'en' ? '2. Choose a Country:' : '2. Bir Ülke Seçin:'}</label>
-          <select value={selectedCountry} onChange={handleCountryChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', backgroundColor: '#172a45', color: '#FFFFFF', border: '2px solid #0052FF', outline: 'none', cursor: 'pointer' }}>
-            {countries.map((country, i) => (
-              <option key={i} value={country} style={{ backgroundColor: '#0a192f' }}>{country}</option>
-            ))}
-          </select>
-        </div>
-
         {/* Büyük Gösterge Paneli */}
-        <div style={{ backgroundColor: '#FFFFFF', padding: '20px', borderRadius: '16px', marginBottom: '25px', textAlign: 'center' }}>
-          <div style={{ color: '#333333', fontSize: '13px', fontWeight: '600', marginBottom: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <span>{selectedContinent}</span>
-            <span>➔</span>
-            <span style={{ color: '#0052FF', fontWeight: 'bold' }}>{selectedCountry}</span>
-            <span style={{ fontWeight: 'normal' }}>{lang === 'en' ? 'Registered Base Users:' : 'Kayıtlı Base Kullanıcısı:'}</span>
+        <div style={{ backgroundColor: '#FFFFFF', padding: '25px 20px', borderRadius: '16px', marginBottom: '25px', textAlign: 'center' }}>
+          <div style={{ color: '#333333', fontSize: '13px', fontWeight: '600', marginBottom: '5px' }}>
+            {lang === 'en' ? 'Total Verified Onchain Builders:' : 'Toplam Doğrulanmış Onchain Builder Sayısı:'}
           </div>
-          <div style={{ fontSize: '38px', fontWeight: '900', color: '#0052FF' }}>
+          <div style={{ fontSize: '42px', fontWeight: '900', color: '#0052FF', letterSpacing: '-1px' }}>
             {baseCount.toLocaleString()}
           </div>
         </div>
 
-        {currentButton}
+        {/* Kademeli Akıllı Web3 Buton Alanı */}
+        {!isWalletConnected ? (
+          <button onClick={handleConnectWallet} style={buttonStyle}>
+            {lang === 'en' ? '⚡ Connect Wallet' : '⚡ Cüzdan Bağla'}
+          </button>
+        ) : !hasCheckedIn ? (
+          <button onClick={handleCheckIn} style={buttonStyle}>
+            {lang === 'en' ? '📍 Confirm & Check-In' : '📍 Check-In İşlemini Onayla'}
+          </button>
+        ) : (
+          <button onClick={handleShareOnWarpcast} style={{ ...buttonStyle, backgroundColor: '#64ffda', color: '#0a192f' }}>
+            {lang === 'en' ? '📢 Share on Warpcast' : '📢 Warpcast\'te Paylaş'}
+          </button>
+        )}
 
       </div>
     </main>

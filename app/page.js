@@ -48,7 +48,7 @@ export default function BaseCityHome() {
     initFrame()
   }, [])
 
-  // Normal tarayıcılar için yedek cüzdan bağlantı motoru (Syntax hatası sıfırlandı)
+  // Normal tarayıcılar için yedek cüzdan bağlantı motoru
   const handleConnectWallet = async () => {
     if (typeof window !== 'undefined' && window.ethereum) {
       try {
@@ -86,7 +86,7 @@ export default function BaseCityHome() {
     setTxHash('')
   }
 
-  // 💸 Mobilde ve Masaüstünde Gerçek USDC Transfer Onayı Tetikleyici Motoru
+  // 💸 Gerçek USDC Transfer Onayı Tetikleyici Motoru
   const handleCheckInWithUSDC = async () => {
     setTxLoading(true)
     
@@ -133,13 +133,20 @@ export default function BaseCityHome() {
     }
   }
 
-  // 📢 UYGULAMANIN RESMİ CANLI KENDİ LİNKİNİ FIRTLATAN AKTİF PAYLAŞIM MOTORU
+  // 📢 ASLA KİLİTLENMEYEN RESMİ FARCASTER PAYLAŞIM MOTORU
   const handleShareOnWarpcast = () => {
     const appUrl = "https://vercel.app"
-    const shareText = `🔵 I just checked into BaseCity Home as a verified Base builder! 💸 Signed 0.01 USDC on-chain.\n\nTrack my verification on Basescan: https://basescan.org{txHash}\n\nVerify your builder spot now! 👇`
+    const shareText = `I just checked into BaseCity Home as a verified Base builder! 💸 Signed 0.01 USDC on-chain.\n\nTrack my verification on Basescan: https://basescan.org{txHash}\n\nVerify your builder spot now! 👇`
     
-    // Warpcast Frame standartlarına en uyumlu resmi yönlendirme protokolü
-    window.open(`https://warpcast.com{encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(appUrl)}`, '_blank')
+    const targetUrl = `https://warpcast.com{encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(appUrl)}`
+
+    // Eğer Farcaster mobil uygulaması içindeyse resmi SDK aksiyonunu çalıştırır (Sandbox engelini kırar)
+    if (sdkInstance?.actions?.openUrl) {
+      sdkInstance.actions.openUrl(targetUrl)
+    } else {
+      // Normal tarayıcılar için yedek fırlatıcı
+      window.open(targetUrl, '_blank')
+    }
   }
 
   const buttonStyle = { backgroundColor: '#0052FF', color: '#FFFFFF', border: 'none', padding: '16px 30px', fontSize: '16px', fontWeight: 'bold', borderRadius: '14px', width: '100%', cursor: 'pointer', display: 'block', textAlign: 'center', WebkitTapHighlightColor: 'transparent', transition: 'background 0.2s' };
@@ -180,7 +187,7 @@ export default function BaseCityHome() {
           </div>
         </div>
 
-        {/* Kademeli Akıllı Butonlar */}
+        {/* Buton Alanı */}
         {!isWalletConnected && (
           <button onClick={handleConnectWallet} style={buttonStyle}>
             {lang === 'en' ? '⚡ Connect Wallet' : '⚡ Cüzdan Bağla'}

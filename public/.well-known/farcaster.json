@@ -1,16 +1,15 @@
 {
-  "accountAssociation": {
-    "header": "eyJhbGciOiJFUzI1NksiLCJ0eXAiOiJKV1QifQ",
-    "payload": "eyJkb21haW4iOiJiYXNlY2l0eS1ob21lLnZlcmNlbC5hcHAifQ",
-    "signature": "MHcCAQEEInsiZG9tYWluIjogImJhc2VjaXR5LWhvbWUudmVyY2VsLmFwcCJ9oAoGCCqGSM49AwEHoUQDQgAE"
-  },
   "frame": {
-    "version": "1",
     "name": "BaseCity Home",
-    "iconUrl": "https://basecity-home.vercel.app",
+    "version": "1",
+    "iconUrl": "https://basecity-home.vercel.app/icon.png",
     "homeUrl": "https://basecity-home.vercel.app",
-    "imageUrl": "https://basecity-home.vercel.app/splash.png",
-    "buttonTitle": "Check-In via GPS",
-    "webhookUrl": "https://basecity-home.vercel.app/api/webhook"
+    "imageUrl": "https://basecity-home.vercel.app/image.png",
+    "splashImageUrl": "https://basecity-home.vercel.app/splash.png",
+    "splashBackgroundColor": "#6200EA",
+    "webhookUrl": "https://basecity-home.vercel.app/api/webhook",
+    "subtitle": "Connect and Share",
+    "description": "My first app",
+    "primaryCategory": "social"
   }
 }

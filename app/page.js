@@ -1,9 +1,10 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
 
 export default function BaseCityHome() {
-  const [location, setLocation] = useState({ city: 'Locating...', country: 'Detecting...' });
+  const [location, setLocation] = useState({ city: 'Locating...', country: 'Türkiye' });
   const [localActiveUsers, setLocalActiveUsers] = useState(0);
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
@@ -13,7 +14,11 @@ export default function BaseCityHome() {
 
   useEffect(() => {
     const init = async () => { 
-      try { await sdk.actions.ready(); } catch (e) { console.error(e); } 
+      try { 
+        await sdk.actions.ready(); 
+      } catch (e) { 
+        console.error("Farcaster load error:", e); 
+      } 
     };
     init();
 
@@ -22,16 +27,13 @@ export default function BaseCityHome() {
     if (lastCheckIn === today) setHasCheckedIn(true);
 
     try {
-      // 100% stable device core parser - Bypasses Farcaster network proxy blocks completely
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (tz) {
         const parts = tz.split('/');
         let detectedCity = parts[parts.length - 1]?.replace(/_/g, ' ') || "Active District";
         let detectedCountry = "Global Space";
 
-        // Turkish local developers location validation override matrix
         if (tz.includes("Istanbul") || tz.includes("Europe/Istanbul")) {
-          // If you are located around Izmir/Manisa/Salihli, it maps to your regional hub context
           detectedCity = "Manisa / Izmir Hub";
           detectedCountry = "Türkiye";
         } else if (tz.includes("America")) {
@@ -39,14 +41,13 @@ export default function BaseCityHome() {
         } else if (tz.includes("Europe")) {
           detectedCountry = "Europe Region";
         }
-
         setLocation({ city: detectedCity, country: detectedCountry });
       } else {
         setLocation({ city: "Main District", country: "Global Space" });
       }
       setLocalActiveUsers(Math.floor(Math.random() * 45) + 22 + (lastCheckIn === today ? 1 : 0));
     } catch (e) {
-      setLocError("Failed to extract device geolocation parameter indices.");
+      setLocError("Failed to extract device location indices.");
     }
   }, []);
 
@@ -79,16 +80,19 @@ export default function BaseCityHome() {
         if (accounts && accounts.length > 0) {
           const text = `Sign this secure authorization request to connect to BaseCity Home.\n\nNonce ID: ${Date.now()}`;
           const hex = '0x' + Array.from(new TextEncoder().encode(text)).map(b => b.toString(16).padStart(2, '0')).join('');
-          await activeProvider.request({ method: 'personal_sign', params: [hex, accounts] });
-          setWalletAddress(accounts);
+          
+          await activeProvider.request({ method: 'personal_sign', params: [hex, accounts[0]] });
+          setWalletAddress(accounts[0]);
           return;
         }
       }
       const res = await sdk?.actions?.connectWallet();
       if (res?.address) setWalletAddress(res.address);
     } catch (e) {
-      alert("Verification Failed: You must authorize the signature request window.");
-    } finally { setIsConnecting(false); }
+      alert("Verification Failed: Signature request rejected.");
+    } finally { 
+      setIsConnecting(false); 
+    }
   };
 
   return (
@@ -103,7 +107,7 @@ export default function BaseCityHome() {
         @keyframes fall {
           0% { top: -5%; transform: translateX(0) rotate(0deg); opacity: 1; }
           50% { transform: translateX(15px) rotate(180deg); }
-          100% { top: 105%; transform: translateX(-15px) rotate(360deg); opacity: 0; opacity: 0; }
+          100% { top: 105%; transform: translateX(-15px) rotate(360deg); opacity: 0; }
         }
       `}</style>
       

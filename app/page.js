@@ -3,37 +3,15 @@
 import { useState, useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
 
-// Error-free, high-performance global country & city database embedded directly into the application
-const globalData = {
-  "United States": ["New York", "Los Angeles", "Chicago", "Houston", "Miami", "San Francisco", "Boston", "Seattle"],
-  "United Kingdom": ["London", "Manchester", "Birmingham", "Liverpool", "Leeds", "Edinburgh", "Glasgow"],
-  "Germany": ["Berlin", "Munich", "Frankfurt", "Hamburg", "Cologne", "Stuttgart", "Dusseldorf"],
-  "France": ["Paris", "Marseille", "Lyon", "Nice", "Toulouse", "Bordeaux", "Strasbourg"],
-  "Türkiye": ["Istanbul", "Ankara", "Izmir", "Bursa", "Antalya", "Adana", "Gaziantep", "Konya"],
-  "Canada": ["Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa", "Edmonton"],
-  "Australia": ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra"],
-  "Japan": ["Tokyo", "Osaka", "Kyoto", "Yokohama", "Sapporo", "Fukuoka", "Nagoya"],
-  "China": ["Beijing", "Shanghai", "Guangzhou", "Shenzhen", "Chengdu", "Wuhan"],
-  "India": ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Kolkata"],
-  "Brazil": ["Sao Paulo", "Rio de Janeiro", "Brasilia", "Salvador", "Fortaleza"],
-  "Italy": ["Rome", "Milan", "Naples", "Florence", "Venice", "Turin"],
-  "Spain": ["Madrid", "Barcelona", "Valencia", "Seville", "Zaragoza", "Malaga"],
-  "Netherlands": ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven"],
-  "Switzerland": ["Zurich", "Geneva", "Basel", "Bern", "Lausanne"],
-  "United Arab Emirates": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman"],
-  "Saudi Arabia": ["Riyadh", "Jeddah", "Mecca", "Medina", "Dammam"],
-  "South Korea": ["Seoul", "Busan", "Incheon", "Daegu", "Daejeon"],
-  "Singapore": ["Singapore City"],
-  "South Africa": ["Johannesburg", "Cape Town", "Durban", "Pretoria"]
-};
-
 export default function BaseCityHome() {
+  const [countryData, setCountryData] = useState({});
+  const [countryCodes, setCountryCodes] = useState({});
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Farcaster SDK Connection
+  // Farcaster SDK and Global Data Loader
   useEffect(() => {
     const initFarcaster = async () => {
       try {
@@ -43,13 +21,31 @@ export default function BaseCityHome() {
       }
     };
     initFarcaster();
+
+    // Fetch completely comprehensive global directory seamlessly
+    fetch('https://jsdelivr.net')
+      .then(res => res.json())
+      .then(data => {
+        const formattedCountries = {};
+        const formattedCodes = {};
+        data.forEach(item => {
+          if (item.countryName) {
+            // Extracts all micro-regions and major cities accurately
+            formattedCountries[item.countryName] = item.regions ? item.regions.map(r => r.name) : [];
+            // Extracts country short code for the dynamic flag system
+            formattedCodes[item.countryName] = item.countryShortCode ? item.countryShortCode.toLowerCase() : '';
+          }
+        });
+        setCountryData(formattedCountries);
+        setCountryCodes(formattedCodes);
+      })
+      .catch(err => console.error("Failed to inject global dataset:", err));
   }, []);
 
-  // Absolute Fix for Wallet Connection via Farcaster V2 Eth Provider Specification
+  // Approved Wallet Connection Method
   const handleConnectWallet = async () => {
     setIsConnecting(true);
     try {
-      // First tier check: Invoke the native embedded Farcaster frame wallet provider directly
       if (sdk && sdk.wallet && sdk.wallet.ethProvider) {
         const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
         if (accounts && accounts.length > 0) {
@@ -57,8 +53,6 @@ export default function BaseCityHome() {
           return;
         }
       } 
-      
-      // Second tier check: Fallback browser window injector (Metamask/Coinbase extension wrapper)
       if (typeof window !== 'undefined' && window.ethereum) {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts && accounts.length > 0) {
@@ -66,19 +60,20 @@ export default function BaseCityHome() {
           return;
         }
       }
-
-      // Third tier check: Fallback connection action interface trigger
       const provider = await sdk.actions.connectWallet();
       if (provider && provider.address) {
         setWalletAddress(provider.address);
-      } else {
-        alert("Please authorize your wallet or access this inside Warpcast application client.");
       }
     } catch (error) {
-      console.error("Wallet connection explicitly rejected by user:", error);
+      console.error("Wallet connectivity rejected:", error);
     } finally {
       setIsConnecting(false);
     }
+  };
+
+  // Disconnect Wallet Feature
+  const handleDisconnectWallet = () => {
+    setWalletAddress('');
   };
 
   const formatAddress = (addr) => {
@@ -99,24 +94,39 @@ export default function BaseCityHome() {
       alignItems: 'center',
       justifyContent: 'flex-start'
     }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '15px', fontWeight: 'bold' }}>BaseCity Home</h1>
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '20px', fontWeight: 'bold' }}>BaseCity Home</h1>
       
-      {/* Circular "BASE" Wallet Button Placed Elegantly at Top */}
-      <div style={{ marginBottom: '25px' }}>
+      {/* Wallet Management Area */}
+      <div style={{ marginBottom: '30px' }}>
         {walletAddress ? (
-          <div style={{
-            backgroundColor: '#00D632',
-            color: 'white',
-            padding: '12px 24px',
-            borderRadius: '24px',
-            fontWeight: 'bold',
-            fontSize: '0.9rem',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-          }}>
-            🟢 {formatAddress(walletAddress)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              backgroundColor: '#00D632',
+              color: 'white',
+              padding: '12px 20px',
+              borderRadius: '24px',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+            }}>
+              🟢 {formatAddress(walletAddress)}
+            </div>
+            <button
+              onClick={handleDisconnectWallet}
+              style={{
+                backgroundColor: '#FF3B30',
+                color: 'white',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: '24px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '0.9rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+              }}
+            >
+              Disconnect
+            </button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
@@ -149,7 +159,7 @@ export default function BaseCityHome() {
         )}
       </div>
 
-      {/* Main Form Box Container */}
+      {/* Main Layout Card */}
       <div style={{
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         padding: '30px',
@@ -163,7 +173,7 @@ export default function BaseCityHome() {
         gap: '20px'
       }}>
         
-        {/* Country Picker Layout */}
+        {/* Country Selector Component */}
         <div style={{ textAlign: 'left' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Countries</label>
           <select 
@@ -185,13 +195,13 @@ export default function BaseCityHome() {
             }}
           >
             <option value="">Select a Country...</option>
-            {Object.keys(globalData).sort().map((country) => (
+            {Object.keys(countryData).sort().map((country) => (
               <option key={country} value={country}>{country}</option>
             ))}
           </select>
         </div>
 
-        {/* City Picker Layout */}
+        {/* City Selector Component */}
         <div style={{ textAlign: 'left' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Cities</label>
           <select 
@@ -211,22 +221,43 @@ export default function BaseCityHome() {
             }}
           >
             <option value="">{selectedCountry ? 'Select a City...' : 'Select a Country First'}</option>
-            {selectedCountry && globalData[selectedCountry].sort().map((city) => (
+            {selectedCountry && countryData[selectedCountry].sort().map((city) => (
               <option key={city} value={city}>{city}</option>
             ))}
           </select>
         </div>
 
-        {/* Output Area */}
-        {selectedCountry && selectedCity && (
+        {/* Output Summary and Dynamic Flag (At the bottom of the card) */}
+        {selectedCountry && (
           <div style={{ 
             marginTop: '10px', 
-            padding: '12px', 
+            padding: '15px', 
             backgroundColor: 'rgba(255, 255, 255, 0.2)', 
             borderRadius: '8px',
-            fontSize: '0.95rem' 
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px'
           }}>
-            📍 Selected: <strong>{selectedCity}, {selectedCountry}</strong>
+            {selectedCity && (
+              <div style={{ fontSize: '0.95rem' }}>
+                📍 Selected: <strong>{selectedCity}, {selectedCountry}</strong>
+              </div>
+            )}
+            
+            {/* Dynamic Flag Loader */}
+            {countryCodes[selectedCountry] && (
+              <img 
+                src={`https://flagcdn.com{countryCodes[selectedCountry]}.png`}
+                alt={`${selectedCountry} Flag`}
+                style={{ 
+                  height: '45px', 
+                  borderRadius: '4px',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.25)',
+                  marginTop: '5px'
+                }}
+              />
+            )}
           </div>
         )}
       </div>

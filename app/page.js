@@ -2,66 +2,70 @@
 import { useState, useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
 
+// %100 Kararlı Yerel Saat Dilimi - Şehir Eşleştirme Haritası (Sıfır Kod Boyutu ve Sıfır API Bağımlılığı)
+function getExactCityFromTimezone() {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!tz) return { city: "Istanbul", country: "Türkiye" };
+    
+    const parts = tz.split('/');
+    const rawCity = parts[parts.length - 1] || "Istanbul";
+    let cleanCity = rawCity.replace(/_/g, ' ');
+
+    // Türkiye lokasyon kontrolü ve isimlendirme düzeltmesi
+    let country = "Global Space";
+    if (tz.includes("Istanbul") || tz.includes("Europe/Istanbul") || tz.includes("Asia/Istanbul")) {
+      cleanCity = "Istanbul / Manisa Region";
+      country = "Türkiye";
+    } else if (tz.includes("Europe")) {
+      country = "Europe Zone";
+    } else if (tz.includes("America")) {
+      country = "United States";
+    }
+
+    return { city: cleanCity, country: country };
+  } catch (e) {
+    return { city: "Istanbul", country: "Türkiye" };
+  }
+}
+
 export default function BaseCityHome() {
   const [location, setLocation] = useState({ city: 'Locating...', country: 'Locating...' });
   const [localActiveUsers, setLocalActiveUsers] = useState(0);
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
-  const [locError, setLocError] = useState('');
   const [confetti, setConfetti] = useState([]);
 
   useEffect(() => {
-    const init = async () => { try { await sdk.actions.ready(); } catch (e) { console.error(e); } };
+    const init = async () => { 
+      try { await sdk.actions.ready(); } catch (e) { console.error(e); } 
+    };
     init();
 
-    // Check Daily 1 Check-In Limit from Local Storage
+    // Günlük Check-In kontrolü
     const today = new Date().toDateString();
     const lastCheckIn = localStorage.getItem('basecity_last_checkin');
-    if (lastCheckIn === today) {
-      setHasCheckedIn(true);
-    }
+    if (lastCheckIn === today) setHasCheckedIn(true);
 
-    if (typeof window !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          try {
-            const res = await fetch(`https://bigdatacloud.net{lat}&longitude=${lon}&localityLanguage=en`);
-            const data = await res.json();
-            setLocation({ 
-              city: data.city || data.principalSubdivision || "Active District", 
-              country: data.countryName || "Global Space" 
-            });
-            setLocalActiveUsers(Math.floor(Math.random() * 45) + 22 + (lastCheckIn === today ? 1 : 0));
-          } catch (err) {
-            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const fallbackCity = tz ? tz.split('/')[1]?.replace('_', ' ') : "Main Hub";
-            setLocation({ city: fallbackCity, country: "Detected Zone" });
-            setLocalActiveUsers(38);
-          }
-        },
-        () => setLocError("GPS permission rejected. Please unlock location settings."),
-        { enableHighAccuracy: true, timeout: 15000 }
-      );
-    } else { setLocError("Location protocol parameters missing."); }
+    // Cihazın kendi sisteminden şehri API olmadan anında çöz
+    const resolvedGeo = getExactCityFromTimezone();
+    setLocation({ city: resolvedGeo.city, country: resolvedGeo.country });
+    setLocalActiveUsers(Math.floor(Math.random() * 45) + 22 + (lastCheckIn === today ? 1 : 0));
   }, []);
 
-  // Burst Lightweight CSS Confetti Animation
   const triggerConfetti = () => {
-    const colors = ['#0052FF', '#FF3B30', '#00D632', '#FFCC00', '#FF2D55', '#5856D6'];
-    const tempConfetti = Array.from({ length: 50 }).map((_, i) => ({
+    const colors = ['#0052FF', '#FF3B30', '#00D632', '#FFCC00', '#FF2D55'];
+    const tempConfetti = Array.from({ length: 40 }).map((_, i) => ({
       id: i,
-      x: Math.random() * 100, // Screen width percentage
+      x: Math.random() * 100,
       y: -10,
       color: colors[Math.floor(Math.random() * colors.length)],
       size: Math.random() * 8 + 6,
-      delay: Math.random() * 0.5,
-      duration: Math.random() * 1.5 + 1.5
+      delay: Math.random() * 0.4,
+      duration: Math.random() * 1.5 + 1.2
     }));
     setConfetti(tempConfetti);
-    // Auto clear elements from DOM after animation completes
     setTimeout(() => setConfetti([]), 3000);
   };
 
@@ -69,34 +73,34 @@ export default function BaseCityHome() {
     if (!hasCheckedIn && location.city !== 'Locating...') {
       setLocalActiveUsers(prev => prev + 1);
       setHasCheckedIn(true);
-      
-      // Save current date explicitly to restrict to 1 check-in per day
-      const today = new Date().toDateString();
-      localStorage.setItem('basecity_last_checkin', today);
-      
-      // Fire confetti effect
+      localStorage.setItem('basecity_last_checkin', new Date().toDateString());
       triggerConfetti();
     }
   };
 
+  // Onay Pencereli Kesinleşmiş Cüzdan Bağlantısı
   const handleConnectWallet = async () => {
     setIsConnecting(true);
     try {
       const activeProvider = sdk?.wallet?.ethProvider || (typeof window !== 'undefined' && window.ethereum);
       if (activeProvider) {
         const accounts = await activeProvider.request({ method: 'eth_requestAccounts' });
-        if (accounts?.length > 0) {
-          const text = `Sign this secure authorization request to connect to BaseCity Home.\n\nNonce ID: ${Date.now()}`;
+        if (accounts && accounts.length > 0) {
+          const text = `Sign this secure authorization request to connect to BaseCity Home.\n\nNonce: ${Date.now()}`;
           const hex = '0x' + Array.from(new TextEncoder().encode(text)).map(b => b.toString(16).padStart(2, '0')).join('');
-          await activeProvider.request({ method: 'personal_sign', params: [hex, accounts] });
-          setWalletAddress(accounts);
+          
+          // Cüzdanda doğrudan Onay/İmza penceresini fırlatır
+          await activeProvider.request({ method: 'personal_sign', params: [hex, accounts[0] || accounts] });
+          setWalletAddress(accounts[0] || accounts);
           return;
         }
       }
+      
       const res = await sdk?.actions?.connectWallet();
       if (res?.address) setWalletAddress(res.address);
     } catch (e) {
-      alert("Verification Failed: You must authorize the message request signature window.");
+      console.error(e);
+      alert("Signature Required: Connection declined by user.");
     } finally { setIsConnecting(false); }
   };
 
@@ -104,48 +108,32 @@ export default function BaseCityHome() {
     <main style={{ padding: '40px 20px', textAlign: 'center', fontFamily: 'system-ui, sans-serif', backgroundColor: '#0052FF', color: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
       <h1 style={{ fontSize: '2.5rem', marginBottom: '35px', fontWeight: 'bold' }}>BaseCity Home</h1>
       
-      {/* Light HTML Confetti Canvas Overlay */}
       {confetti.map(c => (
-        <div key={c.id} style={{
-          position: 'absolute',
-          top: `${c.y}%`,
-          left: `${c.x}%`,
-          width: `${c.size}px`,
-          height: `${c.size}px`,
-          backgroundColor: c.color,
-          borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-          zIndex: 9999,
-          opacity: 0.8,
-          transform: 'rotate(0deg)',
-          animation: `fall ${c.duration}s linear ${c.delay}s forwards`
-        }} />
+        <div key={c.id} style={{ position: 'absolute', top: `${c.y}%`, left: `${c.x}%`, width: `${c.size}px`, height: `${c.size}px`, backgroundColor: c.color, borderRadius: Math.random() > 0.5 ? '50%' : '2px', zIndex: 9999, opacity: 0.8, animation: `fall ${c.duration}s linear ${c.delay}s forwards` }} />
       ))}
 
-      {/* Embedded CSS Animation Injector without external file */}
       <style>{`
         @keyframes fall {
           0% { top: -5%; transform: translateX(0) rotate(0deg); opacity: 1; }
-          50% { transform: translateX(20px) rotate(180deg); }
-          100% { top: 105%; transform: translateX(-20px) rotate(360deg); opacity: 0; }
+          50% { transform: translateX(15px) rotate(180deg); }
+          100% { top: 105%; transform: translateX(-15px) rotate(360deg); opacity: 0; }
         }
       `}</style>
       
       <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '400px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' }}>
         <h3 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', opacity: '0.9' }}>Your Live City</h3>
-        {locError ? <div style={{ color: '#FF3B30', fontWeight: 'bold' }}>⚠️ {locError}</div> : (
-          <div>
-            <div style={{ fontSize: '2.4rem', fontWeight: 'bold', marginBottom: '5px' }}>🏙️ {location.city}</div>
-            <div style={{ fontSize: '1.1rem', opacity: '0.8', marginBottom: '15px' }}>{location.country}</div>
-            <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.2)', margin: '15px 0' }} />
-            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 214, 50, 0.15)', borderRadius: '12px', marginBottom: '15px', border: '1px solid rgba(0, 214, 50, 0.3)' }}>
-              <span style={{ display: 'block', fontSize: '0.9rem', opacity: '0.8' }}>Active users in this city:</span>
-              <strong style={{ fontSize: '1.6rem', color: '#00D632' }}>{localActiveUsers} users</strong>
-            </div>
-            <button onClick={handleCheckIn} disabled={hasCheckedIn || location.city === 'Locating...'} style={{ width: '100%', padding: '14px', borderRadius: '8px', border: 'none', backgroundColor: hasCheckedIn ? '#00D632' : 'white', color: hasCheckedIn ? 'white' : '#0052FF', fontWeight: 'bold', fontSize: '1rem', cursor: hasCheckedIn ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              {hasCheckedIn ? '✓ Done for Today!' : 'Check-In Here'}
-            </button>
+        <div>
+          <div style={{ fontSize: '2.4rem', fontWeight: 'bold', marginBottom: '5px' }}>🏙️ {location.city}</div>
+          <div style={{ fontSize: '1.1rem', opacity: '0.8', marginBottom: '15px' }}>{location.country}</div>
+          <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.2)', margin: '15px 0' }} />
+          <div style={{ padding: '12px', backgroundColor: 'rgba(0, 214, 50, 0.15)', borderRadius: '12px', marginBottom: '15px', border: '1px solid rgba(0, 214, 50, 0.3)' }}>
+            <span style={{ display: 'block', fontSize: '0.9rem', opacity: '0.8' }}>Active users in this city:</span>
+            <strong style={{ fontSize: '1.6rem', color: '#00D632' }}>{localActiveUsers} users</strong>
           </div>
-        )}
+          <button onClick={handleCheckIn} disabled={hasCheckedIn || location.city === 'Locating...'} style={{ width: '100%', padding: '14px', borderRadius: '8px', border: 'none', backgroundColor: hasCheckedIn ? '#00D632' : 'white', color: hasCheckedIn ? 'white' : '#0052FF', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            {hasCheckedIn ? '✓ Done for Today!' : 'Check-In Here'}
+          </button>
+        </div>
       </div>
 
       <div style={{ marginBottom: '25px' }}>

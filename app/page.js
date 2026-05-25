@@ -4,14 +4,13 @@ import { useState, useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
 
 export default function BaseCityHome() {
-  const [countries, setCountries] = useState([]);
-  const [cities, setCities] = useState([]);
+  const [countryData, setCountryData] = useState({});
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Farcaster SDK Initializer
+  // Farcaster SDK and Global Data Initializer
   useEffect(() => {
     const initFarcaster = async () => {
       try {
@@ -23,41 +22,38 @@ export default function BaseCityHome() {
     };
     initFarcaster();
 
-    // Fetch all global countries dynamically (Zero code bloat)
-    fetch('https://countriesnow.space')
+    // Fetch ALL countries and cities via secure public CDN (Zero code bloat)
+    fetch('https://jsdelivr.net')
       .then(res => res.json())
       .then(data => {
-        if (!data.error && data.data) {
-          setCountries(data.data);
-        }
+        // Formats the global list seamlessly into the state
+        const formattedData = {};
+        data.forEach(item => {
+          if (item.countryName) {
+            formattedData[item.countryName] = item.regions ? item.regions.map(r => r.name) : [];
+          }
+        });
+        setCountryData(formattedData);
       })
-      .catch(err => console.error("Failed to fetch countries:", err));
+      .catch(err => console.error("Failed to load global directory:", err));
   }, []);
-
-  // Fetch cities whenever a country is selected
-  useEffect(() => {
-    if (!selectedCountry) {
-      setCities([]);
-      return;
-    }
-    const countryObj = countries.find(c => c.country === selectedCountry);
-    if (countryObj && countryObj.cities) {
-      setCities(countryObj.cities);
-    } else {
-      setCities([]);
-    }
-  }, [selectedCountry, countries]);
 
   // Approved Wallet Connection
   const handleConnectWallet = async () => {
     setIsConnecting(true);
     try {
-      const provider = await sdk.actions.connectWallet();
-      if (provider && provider.address) {
-        setWalletAddress(provider.address);
-      } else if (window.ethereum) {
+      if (window.ethereum) {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts.length > 0) setWalletAddress(accounts[0]);
+        if (accounts && accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+        }
+      } else {
+        const provider = await sdk.actions.connectWallet();
+        if (provider && provider.address) {
+          setWalletAddress(provider.address);
+        } else {
+          alert("Please open this app inside Warpcast or a Web3 browser.");
+        }
       }
     } catch (error) {
       console.error("Wallet connection rejected:", error);
@@ -84,46 +80,8 @@ export default function BaseCityHome() {
       alignItems: 'center',
       justifyContent: 'flex-start'
     }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', fontWeight: 'bold' }}>BaseCity Home</h1>
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '40px', fontWeight: 'bold' }}>BaseCity Home</h1>
       
-      {/* Approved Wallet Button */}
-      <div style={{ marginBottom: '30px' }}>
-        {walletAddress ? (
-          <div style={{
-            backgroundColor: '#00D632',
-            color: 'white',
-            padding: '10px 20px',
-            borderRadius: '24px',
-            fontWeight: 'bold',
-            fontSize: '0.95rem',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-          }}>
-            🟢 Connected: {formatAddress(walletAddress)}
-          </div>
-        ) : (
-          <button 
-            onClick={handleConnectWallet}
-            disabled={isConnecting}
-            style={{ 
-              padding: '12px 24px', 
-              backgroundColor: '#fff', 
-              color: '#0052FF', 
-              border: 'none', 
-              borderRadius: '24px', 
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '1rem',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-            }}
-          >
-            {isConnecting ? 'Awaiting Approval...' : 'Connect Wallet'}
-          </button>
-        )}
-      </div>
-
       {/* Form Container */}
       <div style={{
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -135,7 +93,8 @@ export default function BaseCityHome() {
         border: '1px solid rgba(255, 255, 255, 0.2)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '20px'
+        gap: '20px',
+        marginBottom: '20px'
       }}>
         
         {/* Country Select */}
@@ -155,19 +114,20 @@ export default function BaseCityHome() {
               backgroundColor: 'white',
               color: '#333',
               fontSize: '1rem',
-              outline: 'none'
+              outline: 'none',
+              cursor: 'pointer'
             }}
           >
             <option value="">Select a Country...</option>
-            {countries.map((c) => (
-              <option key={c.country} value={c.country}>{c.country}</option>
+            {Object.keys(countryData).sort().map((country) => (
+              <option key={country} value={country}>{country}</option>
             ))}
           </select>
         </div>
 
         {/* City Select */}
         <div style={{ textAlign: 'left' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Cities</label>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Cities / Regions</label>
           <select 
             value={selectedCity}
             onChange={(e) => setSelectedCity(e.target.value)}
@@ -185,7 +145,7 @@ export default function BaseCityHome() {
             }}
           >
             <option value="">{selectedCountry ? 'Select a City...' : 'Select a Country First'}</option>
-            {cities.map((city) => (
+            {selectedCountry && countryData[selectedCountry].sort().map((city) => (
               <option key={city} value={city}>{city}</option>
             ))}
           </select>
@@ -205,19 +165,56 @@ export default function BaseCityHome() {
         )}
       </div>
 
-      {/* Action Button */}
+      {/* Connect Wallet Button Placed Elegantly at the Very Bottom */}
+      <div style={{ marginTop: 'auto', marginBottom: '20px' }}>
+        {walletAddress ? (
+          <div style={{
+            backgroundColor: '#00D632',
+            color: 'white',
+            padding: '12px 28px',
+            borderRadius: '24px',
+            fontWeight: 'bold',
+            fontSize: '1rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}>
+            🟢 Connected: {formatAddress(walletAddress)}
+          </div>
+        ) : (
+          <button 
+            onClick={handleConnectWallet}
+            disabled={isConnecting}
+            style={{ 
+              padding: '14px 32px', 
+              backgroundColor: '#fff', 
+              color: '#0052FF', 
+              border: 'none', 
+              borderRadius: '24px', 
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '1.1rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+            }}
+          >
+            {isConnecting ? 'Awaiting Approval...' : 'Connect Wallet'}
+          </button>
+        )}
+      </div>
+
+      {/* Action Link */}
       <button 
         onClick={() => sdk.actions.openUrl('https://basescan.org')}
         style={{ 
-          marginTop: '30px',
-          padding: '12px 24px', 
-          backgroundColor: 'rgba(255, 255, 255, 0.2)', 
-          color: 'white', 
-          border: '1px solid rgba(255,255,255,0.4)', 
-          borderRadius: '24px', 
+          marginTop: '10px',
+          padding: '8px 16px', 
+          backgroundColor: 'transparent', 
+          color: 'rgba(255,255,255,0.6)', 
+          border: 'none', 
           cursor: 'pointer',
-          fontWeight: '500',
-          fontSize: '0.9rem'
+          fontSize: '0.85rem',
+          textDirection: 'ltr'
         }}
       >
         View Transaction on Basescan

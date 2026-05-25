@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
 
-// Internal error-free database (No API blocks, fully stable)
+// Error-free, high-performance global country & city database embedded directly into the application
 const globalData = {
   "United States": ["New York", "Los Angeles", "Chicago", "Houston", "Miami", "San Francisco", "Boston", "Seattle"],
   "United Kingdom": ["London", "Manchester", "Birmingham", "Liverpool", "Leeds", "Edinburgh", "Glasgow"],
@@ -33,29 +33,49 @@ export default function BaseCityHome() {
   const [walletAddress, setWalletAddress] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
 
+  // Farcaster SDK Connection
   useEffect(() => {
     const initFarcaster = async () => {
       try {
         await sdk.actions.ready();
       } catch (error) {
-        console.error("Farcaster error:", error);
+        console.error("Farcaster load error:", error);
       }
     };
     initFarcaster();
   }, []);
 
+  // Absolute Fix for Wallet Connection via Farcaster V2 Eth Provider Specification
   const handleConnectWallet = async () => {
     setIsConnecting(true);
     try {
+      // First tier check: Invoke the native embedded Farcaster frame wallet provider directly
+      if (sdk && sdk.wallet && sdk.wallet.ethProvider) {
+        const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' });
+        if (accounts && accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+          return;
+        }
+      } 
+      
+      // Second tier check: Fallback browser window injector (Metamask/Coinbase extension wrapper)
       if (typeof window !== 'undefined' && window.ethereum) {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts && accounts.length > 0) setWalletAddress(accounts[0]);
+        if (accounts && accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+          return;
+        }
+      }
+
+      // Third tier check: Fallback connection action interface trigger
+      const provider = await sdk.actions.connectWallet();
+      if (provider && provider.address) {
+        setWalletAddress(provider.address);
       } else {
-        const provider = await sdk.actions.connectWallet();
-        if (provider && provider.address) setWalletAddress(provider.address);
+        alert("Please authorize your wallet or access this inside Warpcast application client.");
       }
     } catch (error) {
-      console.error("Wallet connection rejected:", error);
+      console.error("Wallet connection explicitly rejected by user:", error);
     } finally {
       setIsConnecting(false);
     }
@@ -70,25 +90,30 @@ export default function BaseCityHome() {
     <main style={{ 
       padding: '40px 20px', 
       textAlign: 'center', 
-      fontFamily: 'system-ui, sans-serif',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
       backgroundColor: '#0052FF',
       color: 'white',
       minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center'
+      alignItems: 'center',
+      justifyContent: 'flex-start'
     }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '20px', fontWeight: 'bold' }}>BaseCity Home</h1>
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '15px', fontWeight: 'bold' }}>BaseCity Home</h1>
       
-      {/* Circular "BASE" Wallet Button Moved Upwards */}
-      <div style={{ marginBottom: '30px' }}>
+      {/* Circular "BASE" Wallet Button Placed Elegantly at Top */}
+      <div style={{ marginBottom: '25px' }}>
         {walletAddress ? (
           <div style={{
             backgroundColor: '#00D632',
+            color: 'white',
             padding: '12px 24px',
             borderRadius: '24px',
             fontWeight: 'bold',
-            fontSize: '0.95rem',
+            fontSize: '0.9rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }}>
             🟢 {formatAddress(walletAddress)}
@@ -124,7 +149,7 @@ export default function BaseCityHome() {
         )}
       </div>
 
-      {/* Main Card Container */}
+      {/* Main Form Box Container */}
       <div style={{
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         padding: '30px',
@@ -138,7 +163,7 @@ export default function BaseCityHome() {
         gap: '20px'
       }}>
         
-        {/* Country Select */}
+        {/* Country Picker Layout */}
         <div style={{ textAlign: 'left' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Countries</label>
           <select 
@@ -166,7 +191,7 @@ export default function BaseCityHome() {
           </select>
         </div>
 
-        {/* City Select */}
+        {/* City Picker Layout */}
         <div style={{ textAlign: 'left' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Cities</label>
           <select 
@@ -192,7 +217,7 @@ export default function BaseCityHome() {
           </select>
         </div>
 
-        {/* Dynamic Summary Output */}
+        {/* Output Area */}
         {selectedCountry && selectedCity && (
           <div style={{ 
             marginTop: '10px', 

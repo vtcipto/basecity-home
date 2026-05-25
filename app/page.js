@@ -3,57 +3,69 @@
 import { useState, useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
 
-// Ülke ve Şehir Veritabanı
-const countryData = {
-  "Türkiye": ["İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Gaziantep", "Konya"],
-  "Amerika Birleşik Devletleri": ["New York", "Los Angeles", "Chicago", "Houston", "Miami", "San Francisco"],
-  "Almanya": ["Berlin", "Münih", "Frankfurt", "Hamburg", "Köln", "Stuttgart"],
-  "İngiltere": ["Londra", "Manchester", "Birmingham", "Liverpool", "Leeds"],
-  "Fransa": ["Paris", "Marsilya", "Lyon", "Nice", "Toulouse"],
-  "İtalya": ["Roma", "Milano", "Napoli", "Floransa", "Venedik"],
-  "Japonya": ["Tokyo", "Osaka", "Kyoto", "Yokohama", "Sapporo"]
-};
-
 export default function BaseCityHome() {
+  const [countries, setCountries] = useState([]);
+  const [cities, setCities] = useState([]);
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Farcaster SDK Başlatma
+  // Farcaster SDK Initializer
   useEffect(() => {
     const initFarcaster = async () => {
       try {
         await sdk.actions.ready();
-        console.log("Farcaster Mini App Hazır!");
+        console.log("Farcaster Mini App Ready!");
       } catch (error) {
-        console.error("Farcaster başlatılamadı:", error);
+        console.error("Farcaster failed to load:", error);
       }
     };
     initFarcaster();
+
+    // Fetch all global countries dynamically (Zero code bloat)
+    fetch('https://countriesnow.space')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error && data.data) {
+          setCountries(data.data);
+        }
+      })
+      .catch(err => console.error("Failed to fetch countries:", err));
   }, []);
 
-  // Manuel Cüzdan Bağlama Fonksiyonu (Onaylı)
+  // Fetch cities whenever a country is selected
+  useEffect(() => {
+    if (!selectedCountry) {
+      setCities([]);
+      return;
+    }
+    const countryObj = countries.find(c => c.country === selectedCountry);
+    if (countryObj && countryObj.cities) {
+      setCities(countryObj.cities);
+    } else {
+      setCities([]);
+    }
+  }, [selectedCountry, countries]);
+
+  // Approved Wallet Connection
   const handleConnectWallet = async () => {
     setIsConnecting(true);
     try {
-      // Farcaster kullanıcının önüne cüzdan onay penceresini çıkarır
       const provider = await sdk.actions.connectWallet();
       if (provider && provider.address) {
         setWalletAddress(provider.address);
       } else if (window.ethereum) {
-        // Alternatif tarayıcı desteği provizyonu
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts.length > 0) setWalletAddress(accounts[0]);
       }
     } catch (error) {
-      console.error("Cüzdan bağlama reddedildi veya hata oluştu:", error);
+      console.error("Wallet connection rejected:", error);
     } finally {
       setIsConnecting(false);
     }
   };
 
-  // Cüzdan Adresini Kısaltma Formatı (Örn: 0x1234...abcd)
   const formatAddress = (addr) => {
     if (!addr) return '';
     return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
@@ -72,9 +84,9 @@ export default function BaseCityHome() {
       alignItems: 'center',
       justifyContent: 'flex-start'
     }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '10px', fontWeight: 'bold' }}>BaseCity Home</h1>
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', fontWeight: 'bold' }}>BaseCity Home</h1>
       
-      {/* Cüzdan Durum ve Onay Butonu */}
+      {/* Approved Wallet Button */}
       <div style={{ marginBottom: '30px' }}>
         {walletAddress ? (
           <div style={{
@@ -89,7 +101,7 @@ export default function BaseCityHome() {
             gap: '8px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }}>
-            🟢 Bağlı Cüzdan: {formatAddress(walletAddress)}
+            🟢 Connected: {formatAddress(walletAddress)}
           </div>
         ) : (
           <button 
@@ -104,16 +116,15 @@ export default function BaseCityHome() {
               cursor: 'pointer',
               fontWeight: 'bold',
               fontSize: '1rem',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              transition: 'all 0.2s ease'
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
             }}
           >
-            {isConnecting ? 'Onay Bekleniyor...' : '⚡ Cüzdanı Bağla (Onaylı)'}
+            {isConnecting ? 'Awaiting Approval...' : 'Connect Wallet'}
           </button>
         )}
       </div>
 
-      {/* Form Alanı Kartı */}
+      {/* Form Container */}
       <div style={{
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         padding: '30px',
@@ -127,9 +138,9 @@ export default function BaseCityHome() {
         gap: '20px'
       }}>
         
-        {/* Ülke Seçim Kutusu */}
-        <div style={{ textDirection: 'ltr', textAlign: 'left' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Dünya Ülkeleri</label>
+        {/* Country Select */}
+        <div style={{ textAlign: 'left' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Countries</label>
           <select 
             value={selectedCountry}
             onChange={(e) => {
@@ -147,16 +158,16 @@ export default function BaseCityHome() {
               outline: 'none'
             }}
           >
-            <option value="">Bir Ülke Seçin...</option>
-            {Object.keys(countryData).map((country) => (
-              <option key={country} value={country}>{country}</option>
+            <option value="">Select a Country...</option>
+            {countries.map((c) => (
+              <option key={c.country} value={c.country}>{c.country}</option>
             ))}
           </select>
         </div>
 
-        {/* Şehir Seçim Kutusu */}
-        <div style={{ textDirection: 'ltr', textAlign: 'left' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Şehirler</label>
+        {/* City Select */}
+        <div style={{ textAlign: 'left' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Cities</label>
           <select 
             value={selectedCity}
             onChange={(e) => setSelectedCity(e.target.value)}
@@ -173,14 +184,14 @@ export default function BaseCityHome() {
               cursor: selectedCountry ? 'pointer' : 'not-allowed'
             }}
           >
-            <option value="">{selectedCountry ? 'Bir Şehir Seçin...' : 'Önce Ülke Seçmelisiniz'}</option>
-            {selectedCountry && countryData[selectedCountry].map((city) => (
+            <option value="">{selectedCountry ? 'Select a City...' : 'Select a Country First'}</option>
+            {cities.map((city) => (
               <option key={city} value={city}>{city}</option>
             ))}
           </select>
         </div>
 
-        {/* Seçim Özeti Ekranı */}
+        {/* Selection Summary */}
         {selectedCountry && selectedCity && (
           <div style={{ 
             marginTop: '10px', 
@@ -189,12 +200,12 @@ export default function BaseCityHome() {
             borderRadius: '8px',
             fontSize: '0.95rem' 
           }}>
-            📍 Seçilen Yer: <strong>{selectedCity}, {selectedCountry}</strong>
+            📍 Selected: <strong>{selectedCity}, {selectedCountry}</strong>
           </div>
         )}
       </div>
 
-      {/* Dış Link Butonu */}
+      {/* Action Button */}
       <button 
         onClick={() => sdk.actions.openUrl('https://basescan.org')}
         style={{ 

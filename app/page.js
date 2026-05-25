@@ -3,14 +3,37 @@
 import { useState, useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
 
+// Built-in Global Database (100% stable, zero loading errors)
+const globalData = {
+  "United States": ["New York", "Los Angeles", "Chicago", "Houston", "Miami", "San Francisco", "Boston", "Seattle"],
+  "United Kingdom": ["London", "Manchester", "Birmingham", "Liverpool", "Leeds", "Edinburgh", "Glasgow"],
+  "Germany": ["Berlin", "Munich", "Frankfurt", "Hamburg", "Cologne", "Stuttgart", "Dusseldorf"],
+  "France": ["Paris", "Marseille", "Lyon", "Nice", "Toulouse", "Bordeaux", "Strasbourg"],
+  "Türkiye": ["Istanbul", "Ankara", "Izmir", "Bursa", "Antalya", "Adana", "Gaziantep", "Konya"],
+  "Canada": ["Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa", "Edmonton"],
+  "Australia": ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra"],
+  "Japan": ["Tokyo", "Osaka", "Kyoto", "Yokohama", "Sapporo", "Fukuoka", "Nagoya"],
+  "China": ["Beijing", "Shanghai", "Guangzhou", "Shenzhen", "Chengdu", "Wuhan"],
+  "India": ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Kolkata"],
+  "Brazil": ["Sao Paulo", "Rio de Janeiro", "Brasilia", "Salvador", "Fortaleza"],
+  "Italy": ["Rome", "Milan", "Naples", "Florence", "Venice", "Turin"],
+  "Spain": ["Madrid", "Barcelona", "Valencia", "Seville", "Zaragoza", "Malaga"],
+  "Netherlands": ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven"],
+  "Switzerland": ["Zurich", "Geneva", "Basel", "Bern", "Lausanne"],
+  "United Arab Emirates": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman"],
+  "Saudi Arabia": ["Riyadh", "Jeddah", "Mecca", "Medina", "Dammam"],
+  "South Korea": ["Seoul", "Busan", "Incheon", "Daegu", "Daejeon"],
+  "Singapore": ["Singapore City"],
+  "South Africa": ["Johannesburg", "Cape Town", "Durban", "Pretoria"]
+};
+
 export default function BaseCityHome() {
-  const [countryData, setCountryData] = useState({});
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Farcaster SDK and Global Data Initializer
+  // Farcaster SDK Initializer
   useEffect(() => {
     const initFarcaster = async () => {
       try {
@@ -21,38 +44,24 @@ export default function BaseCityHome() {
       }
     };
     initFarcaster();
-
-    // Fetch ALL countries and cities via secure public CDN (Zero code bloat)
-    fetch('https://jsdelivr.net')
-      .then(res => res.json())
-      .then(data => {
-        // Formats the global list seamlessly into the state
-        const formattedData = {};
-        data.forEach(item => {
-          if (item.countryName) {
-            formattedData[item.countryName] = item.regions ? item.regions.map(r => r.name) : [];
-          }
-        });
-        setCountryData(formattedData);
-      })
-      .catch(err => console.error("Failed to load global directory:", err));
   }, []);
 
-  // Approved Wallet Connection
+  // Approved Wallet Connection Fix
   const handleConnectWallet = async () => {
     setIsConnecting(true);
     try {
-      if (window.ethereum) {
+      if (typeof window !== 'undefined' && window.ethereum) {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts && accounts.length > 0) {
           setWalletAddress(accounts[0]);
         }
       } else {
+        // Fallback to Farcaster Native provider
         const provider = await sdk.actions.connectWallet();
         if (provider && provider.address) {
           setWalletAddress(provider.address);
         } else {
-          alert("Please open this app inside Warpcast or a Web3 browser.");
+          alert("Please use a Web3-enabled browser or open inside Warpcast app.");
         }
       }
     } catch (error) {
@@ -94,7 +103,7 @@ export default function BaseCityHome() {
         display: 'flex',
         flexDirection: 'column',
         gap: '20px',
-        marginBottom: '20px'
+        marginBottom: '40px'
       }}>
         
         {/* Country Select */}
@@ -119,7 +128,7 @@ export default function BaseCityHome() {
             }}
           >
             <option value="">Select a Country...</option>
-            {Object.keys(countryData).sort().map((country) => (
+            {Object.keys(globalData).sort().map((country) => (
               <option key={country} value={country}>{country}</option>
             ))}
           </select>
@@ -127,7 +136,7 @@ export default function BaseCityHome() {
 
         {/* City Select */}
         <div style={{ textAlign: 'left' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Cities / Regions</label>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Cities</label>
           <select 
             value={selectedCity}
             onChange={(e) => setSelectedCity(e.target.value)}
@@ -145,7 +154,7 @@ export default function BaseCityHome() {
             }}
           >
             <option value="">{selectedCountry ? 'Select a City...' : 'Select a Country First'}</option>
-            {selectedCountry && countryData[selectedCountry].sort().map((city) => (
+            {selectedCountry && globalData[selectedCountry].sort().map((city) => (
               <option key={city} value={city}>{city}</option>
             ))}
           </select>
@@ -165,8 +174,8 @@ export default function BaseCityHome() {
         )}
       </div>
 
-      {/* Connect Wallet Button Placed Elegantly at the Very Bottom */}
-      <div style={{ marginTop: 'auto', marginBottom: '20px' }}>
+      {/* Connect Wallet Button Placed At The Very Bottom */}
+      <div style={{ marginTop: 'auto', marginBottom: '40px' }}>
         {walletAddress ? (
           <div style={{
             backgroundColor: '#00D632',
@@ -202,23 +211,6 @@ export default function BaseCityHome() {
           </button>
         )}
       </div>
-
-      {/* Action Link */}
-      <button 
-        onClick={() => sdk.actions.openUrl('https://basescan.org')}
-        style={{ 
-          marginTop: '10px',
-          padding: '8px 16px', 
-          backgroundColor: 'transparent', 
-          color: 'rgba(255,255,255,0.6)', 
-          border: 'none', 
-          cursor: 'pointer',
-          fontSize: '0.85rem',
-          textDirection: 'ltr'
-        }}
-      >
-        View Transaction on Basescan
-      </button>
     </main>
   );
 }

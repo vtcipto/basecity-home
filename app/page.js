@@ -2,8 +2,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-
+import { useEffect } from 'react';
+import sdk from '@farcaster/frame-sdk';
 export default function BaseCityHome() {
+useEffect(() => {
+  sdk.actions.ready();
+}, []);
   const [lang, setLang] = useState('en')
   const [baseCount, setBaseCount] = useState(1420)
   const [username, setUsername] = useState('')

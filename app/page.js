@@ -1,171 +1,162 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
 
 export default function BaseCityHome() {
-  const [location, setLocation] = useState({ city: 'Detecting...', country: 'Detecting...' });
+  const [location, setLocation] = useState({ city: 'Locating...', country: 'Locating...' });
   const [localActiveUsers, setLocalActiveUsers] = useState(0);
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [locError, setLocError] = useState('');
+  const [confetti, setConfetti] = useState([]);
 
-  // Farcaster SDK Ignition
   useEffect(() => {
-    const initFarcaster = async () => {
-      try { await sdk.actions.ready(); } catch (e) { console.error(e); }
-    };
-    initFarcaster();
+    const init = async () => { try { await sdk.actions.ready(); } catch (e) { console.error(e); } };
+    init();
 
-    // Trigger precise real-time city geolocation
+    // Check Daily 1 Check-In Limit from Local Storage
+    const today = new Date().toDateString();
+    const lastCheckIn = localStorage.getItem('basecity_last_checkin');
+    if (lastCheckIn === today) {
+      setHasCheckedIn(true);
+    }
+
     if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
-          
           try {
             const res = await fetch(`https://bigdatacloud.net{lat}&longitude=${lon}&localityLanguage=en`);
             const data = await res.json();
-            const exactCity = data.city || data.principalSubdivision || "Unknown City";
-            const exactCountry = data.countryName || "Global Space";
-            
-            setLocation({ city: exactCity, country: exactCountry });
-            setLocalActiveUsers(Math.floor(Math.random() * 50) + 20);
+            setLocation({ 
+              city: data.city || data.principalSubdivision || "Active District", 
+              country: data.countryName || "Global Space" 
+            });
+            setLocalActiveUsers(Math.floor(Math.random() * 45) + 22 + (lastCheckIn === today ? 1 : 0));
           } catch (err) {
-            setLocation({ city: "Main Hub", country: "Global Space" });
-            setLocalActiveUsers(42);
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const fallbackCity = tz ? tz.split('/')[1]?.replace('_', ' ') : "Main Hub";
+            setLocation({ city: fallbackCity, country: "Detected Zone" });
+            setLocalActiveUsers(38);
           }
         },
-        (error) => {
-          setLocError("Location access denied. Please approve GPS prompt.");
-        },
+        () => setLocError("GPS permission rejected. Please unlock location settings."),
         { enableHighAccuracy: true, timeout: 15000 }
       );
-    } else {
-      setLocError("Location tracking features unsupported on this engine setup.");
-    }
+    } else { setLocError("Location protocol parameters missing."); }
   }, []);
 
+  // Burst Lightweight CSS Confetti Animation
+  const triggerConfetti = () => {
+    const colors = ['#0052FF', '#FF3B30', '#00D632', '#FFCC00', '#FF2D55', '#5856D6'];
+    const tempConfetti = Array.from({ length: 50 }).map((_, i) => ({
+      id: i,
+      x: Math.random() * 100, // Screen width percentage
+      y: -10,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: Math.random() * 8 + 6,
+      delay: Math.random() * 0.5,
+      duration: Math.random() * 1.5 + 1.5
+    }));
+    setConfetti(tempConfetti);
+    // Auto clear elements from DOM after animation completes
+    setTimeout(() => setConfetti([]), 3000);
+  };
+
   const handleCheckIn = () => {
-    if (!hasCheckedIn) {
+    if (!hasCheckedIn && location.city !== 'Locating...') {
       setLocalActiveUsers(prev => prev + 1);
       setHasCheckedIn(true);
+      
+      // Save current date explicitly to restrict to 1 check-in per day
+      const today = new Date().toDateString();
+      localStorage.setItem('basecity_last_checkin', today);
+      
+      // Fire confetti effect
+      triggerConfetti();
     }
   };
 
-  // Secure and Explicit Wallet Connection with Mandatory Signature Approval Pop-up
   const handleConnectWallet = async () => {
     setIsConnecting(true);
     try {
-      let activeProvider = null;
-      let selectedAccount = null;
-
-      // 1. Step: Detect the available Web3 Ethereum Provider
-      if (sdk?.wallet?.ethProvider) {
-        activeProvider = sdk.wallet.ethProvider;
-      } else if (typeof window !== 'undefined' && window.ethereum) {
-        activeProvider = window.ethereum;
-      }
-
+      const activeProvider = sdk?.wallet?.ethProvider || (typeof window !== 'undefined' && window.ethereum);
       if (activeProvider) {
-        // Request primary account link
         const accounts = await activeProvider.request({ method: 'eth_requestAccounts' });
-        if (accounts && accounts.length > 0) {
-          selectedAccount = accounts[0];
-          
-          // 2. Step: MANDATORY USER APPROVAL PROMPT (Triggers personal_sign wallet pop-up window)
-          const customMessage = `Welcome to BaseCity Home!\n\nPlease approve this request to securely connect your wallet.\n\nTimestamp: ${Date.now()}`;
-          
-          // Hex encode the human-readable text message for cryptography standards
-          const hexMessage = '0x' + Array.from(new TextEncoder().encode(customMessage))
-            .map(b => b.toString(16).padStart(2, '0')).join('');
-
-          // This specific method forces the client wallet (Metamask, Coinbase, Warpcast) to display a SIGN / APPROVE message screen
-          await activeProvider.request({
-            method: 'personal_sign',
-            params: [hexMessage, selectedAccount],
-          });
-
-          // Set address only after user successfully clicks "Approve / Sign" inside their wallet app
-          setWalletAddress(selectedAccount);
+        if (accounts?.length > 0) {
+          const text = `Sign this secure authorization request to connect to BaseCity Home.\n\nNonce ID: ${Date.now()}`;
+          const hex = '0x' + Array.from(new TextEncoder().encode(text)).map(b => b.toString(16).padStart(2, '0')).join('');
+          await activeProvider.request({ method: 'personal_sign', params: [hex, accounts] });
+          setWalletAddress(accounts);
           return;
         }
       }
-
-      // Fallback fallback if no providers detected
-      if (sdk?.actions?.connectWallet) {
-        const connectionResult = await sdk.actions.connectWallet();
-        if (connectionResult?.address) setWalletAddress(connectionResult.address);
-      }
-    } catch (error) {
-      console.error("Wallet signature or connection explicitly rejected by user:", error);
-      alert("Connection rejected! You must approve the wallet pop-up signature request to connect.");
-    } finally {
-      setIsConnecting(false);
-    }
+      const res = await sdk?.actions?.connectWallet();
+      if (res?.address) setWalletAddress(res.address);
+    } catch (e) {
+      alert("Verification Failed: You must authorize the message request signature window.");
+    } finally { setIsConnecting(false); }
   };
 
   return (
-    <main style={{ padding: '40px 20px', textAlign: 'center', fontFamily: 'system-ui, sans-serif', backgroundColor: '#0052FF', color: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
+    <main style={{ padding: '40px 20px', textAlign: 'center', fontFamily: 'system-ui, sans-serif', backgroundColor: '#0052FF', color: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
       <h1 style={{ fontSize: '2.5rem', marginBottom: '35px', fontWeight: 'bold' }}>BaseCity Home</h1>
       
-      {/* Geolocation Metric Card Dashboard */}
+      {/* Light HTML Confetti Canvas Overlay */}
+      {confetti.map(c => (
+        <div key={c.id} style={{
+          position: 'absolute',
+          top: `${c.y}%`,
+          left: `${c.x}%`,
+          width: `${c.size}px`,
+          height: `${c.size}px`,
+          backgroundColor: c.color,
+          borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+          zIndex: 9999,
+          opacity: 0.8,
+          transform: 'rotate(0deg)',
+          animation: `fall ${c.duration}s linear ${c.delay}s forwards`
+        }} />
+      ))}
+
+      {/* Embedded CSS Animation Injector without external file */}
+      <style>{`
+        @keyframes fall {
+          0% { top: -5%; transform: translateX(0) rotate(0deg); opacity: 1; }
+          50% { transform: translateX(20px) rotate(180deg); }
+          100% { top: 105%; transform: translateX(-20px) rotate(360deg); opacity: 0; }
+        }
+      `}</style>
+      
       <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '400px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' }}>
         <h3 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', opacity: '0.9' }}>Your Live City</h3>
-        
-        {locError ? (
-          <div style={{ color: '#FF3B30', fontWeight: 'bold', fontSize: '0.95rem' }}>⚠️ {locError}</div>
-        ) : (
+        {locError ? <div style={{ color: '#FF3B30', fontWeight: 'bold' }}>⚠️ {locError}</div> : (
           <div>
-            <div style={{ fontSize: '2.6rem', fontWeight: 'bold', marginBottom: '5px' }}>🏙️ {location.city}</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: '500', opacity: '0.8', marginBottom: '15px' }}>{location.country}</div>
-            
+            <div style={{ fontSize: '2.4rem', fontWeight: 'bold', marginBottom: '5px' }}>🏙️ {location.city}</div>
+            <div style={{ fontSize: '1.1rem', opacity: '0.8', marginBottom: '15px' }}>{location.country}</div>
             <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.2)', margin: '15px 0' }} />
-            
-            <div style={{ padding: '15px', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px', textAlign: 'center', marginBottom: '15px' }}>
-              <span style={{ display: 'block', fontSize: '0.9rem', opacity: '0.8', marginBottom: '4px' }}>Active users in this city:</span>
-              <strong style={{ fontSize: '1.8rem', color: '#00D632' }}>{localActiveUsers} users</strong>
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 214, 50, 0.15)', borderRadius: '12px', marginBottom: '15px', border: '1px solid rgba(0, 214, 50, 0.3)' }}>
+              <span style={{ display: 'block', fontSize: '0.9rem', opacity: '0.8' }}>Active users in this city:</span>
+              <strong style={{ fontSize: '1.6rem', color: '#00D632' }}>{localActiveUsers} users</strong>
             </div>
-
-            <button 
-              onClick={handleCheckIn}
-              disabled={hasCheckedIn || location.city === 'Detecting...'}
-              style={{
-                width: '100%',
-                padding: '14px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: hasCheckedIn ? '#00D632' : 'white',
-                color: hasCheckedIn ? '#0052FF' : '#0052FF',
-                fontWeight: 'bold',
-                fontSize: '1rem',
-                cursor: hasCheckedIn || location.city === 'Detecting...' ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {hasCheckedIn ? '✓ You Checked-In!' : 'Check-In Here'}
+            <button onClick={handleCheckIn} disabled={hasCheckedIn || location.city === 'Locating...'} style={{ width: '100%', padding: '14px', borderRadius: '8px', border: 'none', backgroundColor: hasCheckedIn ? '#00D632' : 'white', color: hasCheckedIn ? 'white' : '#0052FF', fontWeight: 'bold', fontSize: '1rem', cursor: hasCheckedIn ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              {hasCheckedIn ? '✓ Done for Today!' : 'Check-In Here'}
             </button>
           </div>
         )}
       </div>
 
-      {/* Circular Custom BASE Identity Web3 Button Area */}
       <div style={{ marginBottom: '25px' }}>
         {walletAddress ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ backgroundColor: '#00D632', color: 'white', padding: '12px 24px', borderRadius: '24px', fontWeight: 'bold', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-              🟢 {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
-            </div>
-            <button onClick={() => setWalletAddress('')} style={{ backgroundColor: '#FF3B30', color: 'white', border: 'none', padding: '12px 20px', borderRadius: '24px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>Disconnect</button>
+            <div style={{ backgroundColor: '#00D632', padding: '12px 24px', borderRadius: '24px', fontWeight: 'bold', fontSize: '0.9rem' }}>🟢 {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}</div>
+            <button onClick={() => setWalletAddress('')} style={{ backgroundColor: '#FF3B30', color: 'white', border: 'none', padding: '12px 20px', borderRadius: '24px', cursor: 'pointer', fontWeight: 'bold' }}>Disconnect</button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <button onClick={handleConnectWallet} disabled={isConnecting} style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#0052FF', border: '4px solid white', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,0,0,0.3)', fontSize: '1rem', fontWeight: '900', letterSpacing: '1px' }}>
-              {isConnecting ? '...' : 'BASE'}
-            </button>
+            <button onClick={handleConnectWallet} disabled={isConnecting} style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#0052FF', border: '4px solid white', color: 'white', cursor: 'pointer', fontSize: '1rem', fontWeight: '900', boxShadow: '0 6px 20px rgba(0,0,0,0.3)' }}>{isConnecting ? '...' : 'BASE'}</button>
             <span style={{ fontSize: '0.85rem', fontWeight: '600', opacity: '0.9' }}>{isConnecting ? 'Signing...' : 'Connect Wallet'}</span>
           </div>
         )}

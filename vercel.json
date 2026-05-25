@@ -1,0 +1,13 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "</.well-known/farcaster.json>; rel=\"alternate\"; type=\"application/vnd.farcaster.snap+json\""
+        }
+      ]
+    }
+  ]
+}

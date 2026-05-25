@@ -3,69 +3,68 @@
 import { useState, useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
 
-// Built-in Global Database (100% stable, zero loading errors)
-const globalData = {
-  "United States": ["New York", "Los Angeles", "Chicago", "Houston", "Miami", "San Francisco", "Boston", "Seattle"],
-  "United Kingdom": ["London", "Manchester", "Birmingham", "Liverpool", "Leeds", "Edinburgh", "Glasgow"],
-  "Germany": ["Berlin", "Munich", "Frankfurt", "Hamburg", "Cologne", "Stuttgart", "Dusseldorf"],
-  "France": ["Paris", "Marseille", "Lyon", "Nice", "Toulouse", "Bordeaux", "Strasbourg"],
-  "Türkiye": ["Istanbul", "Ankara", "Izmir", "Bursa", "Antalya", "Adana", "Gaziantep", "Konya"],
-  "Canada": ["Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa", "Edmonton"],
-  "Australia": ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra"],
-  "Japan": ["Tokyo", "Osaka", "Kyoto", "Yokohama", "Sapporo", "Fukuoka", "Nagoya"],
-  "China": ["Beijing", "Shanghai", "Guangzhou", "Shenzhen", "Chengdu", "Wuhan"],
-  "India": ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Kolkata"],
-  "Brazil": ["Sao Paulo", "Rio de Janeiro", "Brasilia", "Salvador", "Fortaleza"],
-  "Italy": ["Rome", "Milan", "Naples", "Florence", "Venice", "Turin"],
-  "Spain": ["Madrid", "Barcelona", "Valencia", "Seville", "Zaragoza", "Malaga"],
-  "Netherlands": ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven"],
-  "Switzerland": ["Zurich", "Geneva", "Basel", "Bern", "Lausanne"],
-  "United Arab Emirates": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman"],
-  "Saudi Arabia": ["Riyadh", "Jeddah", "Mecca", "Medina", "Dammam"],
-  "South Korea": ["Seoul", "Busan", "Incheon", "Daegu", "Daejeon"],
-  "Singapore": ["Singapore City"],
-  "South Africa": ["Johannesburg", "Cape Town", "Durban", "Pretoria"]
-};
-
 export default function BaseCityHome() {
+  const [countries, setCountries] = useState([]);
+  const [cities, setCities] = useState([]);
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Farcaster SDK Initializer
+  // Farcaster SDK & Global Dynamic Directory Initializer
   useEffect(() => {
     const initFarcaster = async () => {
       try {
         await sdk.actions.ready();
         console.log("Farcaster Mini App Ready!");
       } catch (error) {
-        console.error("Farcaster failed to load:", error);
+        console.error("Farcaster load error:", error);
       }
     };
     initFarcaster();
+
+    // Fetch ALL global countries dynamically from cloud without bloat
+    fetch('https://githubusercontent.com')
+      .then(res => res.json())
+      .then(data => {
+        if (data) setCountries(data);
+      })
+      .catch(err => console.error("Failed to load world directory:", err));
   }, []);
 
-  // Approved Wallet Connection Fix
+  // Fetch ALL cities dynamic matching for the selected country ISO
+  useEffect(() => {
+    if (!selectedCountry) {
+      setCities([]);
+      return;
+    }
+
+    const countryObj = countries.find(c => c.name === selectedCountry);
+    if (!countryObj) return;
+
+    fetch(`https://githubusercontent.com`)
+      .then(res => res.json())
+      .then(allCities => {
+        // High performance filter for accurate city association
+        const filteredCities = allCities.filter(city => city.country_code === countryObj.iso2);
+        setCities(filteredCities);
+      })
+      .catch(err => console.error("Failed to parse global cities:", err));
+  }, [selectedCountry, countries]);
+
+  // Approved Wallet Connection Method
   const handleConnectWallet = async () => {
     setIsConnecting(true);
     try {
       if (typeof window !== 'undefined' && window.ethereum) {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts && accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-        }
+        if (accounts && accounts.length > 0) setWalletAddress(accounts[0]);
       } else {
-        // Fallback to Farcaster Native provider
         const provider = await sdk.actions.connectWallet();
-        if (provider && provider.address) {
-          setWalletAddress(provider.address);
-        } else {
-          alert("Please use a Web3-enabled browser or open inside Warpcast app.");
-        }
+        if (provider && provider.address) setWalletAddress(provider.address);
       }
     } catch (error) {
-      console.error("Wallet connection rejected:", error);
+      console.error("Wallet approval rejected:", error);
     } finally {
       setIsConnecting(false);
     }
@@ -73,7 +72,7 @@ export default function BaseCityHome() {
 
   const formatAddress = (addr) => {
     if (!addr) return '';
-    return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
+    return `${addr.substring(0, 5)}...${addr.substring(addr.length - 4)}`;
   };
 
   return (
@@ -89,9 +88,65 @@ export default function BaseCityHome() {
       alignItems: 'center',
       justifyContent: 'flex-start'
     }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '40px', fontWeight: 'bold' }}>BaseCity Home</h1>
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '25px', fontWeight: 'bold' }}>BaseCity Home</h1>
       
-      {/* Form Container */}
+      {/* Round Base Style Wallet Interface (Moved Upwards) */}
+      <div style={{ marginBottom: '25px' }}>
+        {walletAddress ? (
+          <div style={{
+            backgroundColor: '#00D632',
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: '24px',
+            fontWeight: 'bold',
+            fontSize: '0.9rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}>
+            🟢 {formatAddress(walletAddress)}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <button 
+              onClick={handleConnectWallet}
+              disabled={isConnecting}
+              style={{ 
+                width: '70px',
+                height: '70px',
+                borderRadius: '50%',
+                backgroundColor: '#0052FF',
+                border: '4px solid white',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
+                transition: 'transform 0.2s ease'
+              }}
+            >
+              {/* Symbolic Base Logo representation */}
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                border: '6px solid white',
+                borderRightColor: 'transparent',
+                transform: 'rotate(-45deg)',
+                display: isConnecting ? 'none' : 'block'
+              }} />
+              {isConnecting && <span style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>...</span>}
+            </button>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', opacity: '0.9' }}>
+              {isConnecting ? 'Awaiting...' : 'Connect Wallet'}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Main Layout Card */}
       <div style={{
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         padding: '30px',
@@ -102,11 +157,10 @@ export default function BaseCityHome() {
         border: '1px solid rgba(255, 255, 255, 0.2)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '20px',
-        marginBottom: '40px'
+        gap: '20px'
       }}>
         
-        {/* Country Select */}
+        {/* Country Selector */}
         <div style={{ textAlign: 'left' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Countries</label>
           <select 
@@ -128,34 +182,40 @@ export default function BaseCityHome() {
             }}
           >
             <option value="">Select a Country...</option>
-            {Object.keys(globalData).sort().map((country) => (
-              <option key={country} value={country}>{country}</option>
+            {countries.map((c) => (
+              <option key={c.id} value={c.name}>{c.name}</option>
             ))}
           </select>
         </div>
 
-        {/* City Select */}
+        {/* City Selector */}
         <div style={{ textAlign: 'left' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>Cities</label>
           <select 
             value={selectedCity}
             onChange={(e) => setSelectedCity(e.target.value)}
-            disabled={!selectedCountry}
+            disabled={!selectedCountry || cities.length === 0}
             style={{
               width: '100%',
               padding: '12px',
               borderRadius: '8px',
               border: 'none',
-              backgroundColor: selectedCountry ? 'white' : 'rgba(255, 255, 255, 0.2)',
-              color: selectedCountry ? '#333' : 'rgba(255, 255, 255, 0.5)',
+              backgroundColor: selectedCountry && cities.length > 0 ? 'white' : 'rgba(255, 255, 255, 0.2)',
+              color: selectedCountry && cities.length > 0 ? '#333' : 'rgba(255, 255, 255, 0.5)',
               fontSize: '1rem',
               outline: 'none',
-              cursor: selectedCountry ? 'pointer' : 'not-allowed'
+              cursor: selectedCountry && cities.length > 0 ? 'pointer' : 'not-allowed'
             }}
           >
-            <option value="">{selectedCountry ? 'Select a City...' : 'Select a Country First'}</option>
-            {selectedCountry && globalData[selectedCountry].sort().map((city) => (
-              <option key={city} value={city}>{city}</option>
+            <option value="">
+              {!selectedCountry 
+                ? 'Select a Country First' 
+                : cities.length === 0 
+                ? 'Loading Cities...' 
+                : 'Select a City...'}
+            </option>
+            {cities.map((city) => (
+              <option key={city.id} value={city.name}>{city.name}</option>
             ))}
           </select>
         </div>
@@ -171,44 +231,6 @@ export default function BaseCityHome() {
           }}>
             📍 Selected: <strong>{selectedCity}, {selectedCountry}</strong>
           </div>
-        )}
-      </div>
-
-      {/* Connect Wallet Button Placed At The Very Bottom */}
-      <div style={{ marginTop: 'auto', marginBottom: '40px' }}>
-        {walletAddress ? (
-          <div style={{
-            backgroundColor: '#00D632',
-            color: 'white',
-            padding: '12px 28px',
-            borderRadius: '24px',
-            fontWeight: 'bold',
-            fontSize: '1rem',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-          }}>
-            🟢 Connected: {formatAddress(walletAddress)}
-          </div>
-        ) : (
-          <button 
-            onClick={handleConnectWallet}
-            disabled={isConnecting}
-            style={{ 
-              padding: '14px 32px', 
-              backgroundColor: '#fff', 
-              color: '#0052FF', 
-              border: 'none', 
-              borderRadius: '24px', 
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '1.1rem',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
-            }}
-          >
-            {isConnecting ? 'Awaiting Approval...' : 'Connect Wallet'}
-          </button>
         )}
       </div>
     </main>

@@ -1,147 +1,164 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import sdk from '@farcaster/frame-sdk';
+import { sdk } from '@farcaster/frame-sdk';
 
-export default function BaseCityHome() {
-  const [location, setLocation] = useState({ city: 'Locating...', country: 'Türkiye' });
-  const [localActiveUsers, setLocalActiveUsers] = useState(0);
-  const [hasCheckedIn, setHasCheckedIn] = useState(false);
+export default function BasecityHome() {
   const [walletAddress, setWalletAddress] = useState('');
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [locError, setLocError] = useState('');
-  const [confetti, setConfetti] = useState([]);
+  const [location, setLocation] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  // 1. Farcaster Başlatıcı
   useEffect(() => {
-    const init = async () => { 
-      try { 
+    const init = async () => {
+      try {
         await sdk.actions.ready(); 
-      } catch (e) { 
-        console.error("Farcaster load error:", e); 
-      } 
+      } catch (error) {
+        console.error("SDK başlatılamadı:", error);
+      }
     };
     init();
-
-    const today = new Date().toDateString();
-    const lastCheckIn = localStorage.getItem('basecity_last_checkin');
-    if (lastCheckIn === today) setHasCheckedIn(true);
-
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (tz) {
-        const parts = tz.split('/');
-        let detectedCity = parts[parts.length - 1]?.replace(/_/g, ' ') || "Active District";
-        let detectedCountry = "Global Space";
-
-        if (tz.includes("Istanbul") || tz.includes("Europe/Istanbul")) {
-          detectedCity = "Manisa / Izmir Hub";
-          detectedCountry = "Türkiye";
-        } else if (tz.includes("America")) {
-          detectedCountry = "United States";
-        } else if (tz.includes("Europe")) {
-          detectedCountry = "Europe Region";
-        }
-        setLocation({ city: detectedCity, country: detectedCountry });
-      } else {
-        setLocation({ city: "Main District", country: "Global Space" });
-      }
-      setLocalActiveUsers(Math.floor(Math.random() * 45) + 22 + (lastCheckIn === today ? 1 : 0));
-    } catch (e) {
-      setLocError("Failed to extract device location indices.");
-    }
   }, []);
 
-  const triggerConfetti = () => {
-    const colors = ['#0052FF', '#FF3B30', '#00D632', '#FFCC00', '#FF2D55'];
-    const tempConfetti = Array.from({ length: 40 }).map((_, i) => ({
-      id: i, x: Math.random() * 100, y: -10,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      size: Math.random() * 8 + 6, delay: Math.random() * 0.4, duration: Math.random() * 1.5 + 1.2
-    }));
-    setConfetti(tempConfetti);
-    setTimeout(() => setConfetti([]), 3000);
+  // 2. Güvenli Konum Alma Fonksiyonu (Yazım Hatası Düzeltildi)
+  const konumAlPromise = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Tarayıcı konum desteklemiyor."));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            enlem: position.coords.latitude,
+            boylam: position.coords.longitude
+          });
+        },
+        (err) => {
+          reject(err);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    });
   };
 
-  const handleCheckIn = () => {
-    if (!hasCheckedIn && location.city !== 'Locating...') {
-      setLocalActiveUsers(prev => prev + 1);
-      setHasCheckedIn(true);
-      localStorage.setItem('basecity_last_checkin', new Date().toDateString());
-      triggerConfetti();
-    }
-  };
-
-  const handleConnectWallet = async () => {
-    setIsConnecting(true);
+  // 3. Cüzdan Bağlama ve Resmi Onay (Sign) İsteme Fonksiyonu
+  async function handleConnect() {
+    setLoading(true);
     try {
-      const activeProvider = sdk?.wallet?.ethProvider || (typeof window !== 'undefined' && window.ethereum);
-      if (activeProvider) {
-        const accounts = await activeProvider.request({ method: 'eth_requestAccounts' });
-        if (accounts && accounts.length > 0) {
-          const text = `Sign this secure authorization request to connect to BaseCity Home.\n\nNonce ID: ${Date.now()}`;
-          const hex = '0x' + Array.from(new TextEncoder().encode(text)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const provider = sdk.wallet?.ethProvider;
+      
+      if (!provider) {
+        alert("Farcaster cüzdan sağlayıcısı bulunamadı. Lütfen Warpcast içinden açın.");
+        return;
+      }
+
+      // EKRANA RESMİ CÜZDAN BAĞLANTI ONAYINI GETİRİR
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
+      
+      if (accounts && accounts.length > 0) {
+        const address = accounts[0];
+        
+        // Önce konum verisini güvenle alalım
+        let konumVerisi = null;
+        try {
+          konumVerisi = await konumAlPromise();
+          setLocation(konumVerisi);
+        } catch (konumHata) {
+          alert("Cüzdan bağlandı ancak konum izni alınamadı.");
+        }
+        
+        // GÜVENLİK İÇİN KULLANICIYA EKRANDA BİR DE "İMZA/ONAY" PENCERESİ SUNAR
+        try {
+          await provider.request({
+            method: 'personal_sign',
+            params: [
+              `Basecity Home uygulamasina guvenli baglanti onayi.\nCuzdan: ${address}`,
+              address
+            ]
+          });
           
-          await activeProvider.request({ method: 'personal_sign', params: [hex, accounts[0]] });
-          setWalletAddress(accounts[0]);
-          return;
+          setWalletAddress(address);
+          
+        } catch (signError) {
+          alert("Cüzdan imza onayı reddedildi.");
         }
       }
-      const res = await sdk?.actions?.connectWallet();
-      if (res?.address) setWalletAddress(res.address);
-    } catch (e) {
-      alert("Verification Failed: Signature request rejected.");
-    } finally { 
-      setIsConnecting(false); 
+    } catch (connectError) {
+      console.error("Bağlantı hatası:", connectError);
+      alert("Cüzdan bağlantısı reddedildi.");
+    } finally {
+      setLoading(false);
     }
-  };
+  }
+
+  // 4. Cüzdanı Koparma Fonksiyonu
+  function handleDisconnect() {
+    setWalletAddress('');
+    setLocation(null);
+  }
 
   return (
-    <main style={{ padding: '40px 20px', textAlign: 'center', fontFamily: 'system-ui, sans-serif', backgroundColor: '#0052FF', color: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '35px', fontWeight: 'bold' }}>BaseCity Home</h1>
+    <div style={{ padding: '30px 20px', fontFamily: 'sans-serif', textAlign: 'center', backgroundColor: '#ffffff', color: '#111111', minHeight: '100vh' }}>
+      <h1 style={{ fontSize: '28px', color: '#0052FF', fontWeight: 'bold', marginBottom: '5px' }}>Basecity Home</h1>
+      <p style={{ color: '#666', fontSize: '14px', marginTop: '0' }}>Farcaster Mini App</p>
       
-      {confetti.map(c => (
-        <div key={c.id} style={{ position: 'absolute', top: `${c.y}%`, left: `${c.x}%`, width: `${c.size}px`, height: `${c.size}px`, backgroundColor: c.color, borderRadius: Math.random() > 0.5 ? '50%' : '2px', zIndex: 9999, opacity: 0.8, animation: `fall ${c.duration}s linear ${c.delay}s forwards` }} />
-      ))}
-
-      <style>{`
-        @keyframes fall {
-          0% { top: -5%; transform: translateX(0) rotate(0deg); opacity: 1; }
-          50% { transform: translateX(15px) rotate(180deg); }
-          100% { top: 105%; transform: translateX(-15px) rotate(360deg); opacity: 0; }
-        }
-      `}</style>
-      
-      <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', padding: '30px', borderRadius: '16px', width: '100%', maxWidth: '400px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' }}>
-        <h3 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', opacity: '0.9' }}>Your Live City</h3>
-        {locError ? <div style={{ color: '#FF3B30', fontWeight: 'bold' }}>⚠️ {locError}</div> : (
-          <div>
-            <div style={{ fontSize: '2.4rem', fontWeight: 'bold', marginBottom: '5px' }}>🏙️ {location.city}</div>
-            <div style={{ fontSize: '1.1rem', opacity: '0.8', marginBottom: '15px' }}>{location.country}</div>
-            <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.2)', margin: '15px 0' }} />
-            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 214, 50, 0.15)', borderRadius: '12px', marginBottom: '15px', border: '1px solid rgba(0, 214, 50, 0.3)' }}>
-              <span style={{ display: 'block', fontSize: '0.9rem', opacity: '0.8' }}>Active users in this city:</span>
-              <strong style={{ fontSize: '1.6rem', color: '#00D632' }}>{localActiveUsers} users</strong>
+      <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+        {!walletAddress ? (
+          /* İstediğiniz Mavi, Yuvarlak Base Temalı Buton */
+          <button 
+            onClick={handleConnect} 
+            disabled={loading}
+            style={{ 
+              width: '160px', 
+              height: '160px', 
+              borderRadius: '50%', 
+              backgroundColor: '#0052FF', 
+              color: '#ffffff', 
+              border: 'none', 
+              fontSize: '16px', 
+              fontWeight: 'bold', 
+              cursor: 'pointer', 
+              boxShadow: '0 8px 24px rgba(0, 82, 255, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '15px'
+            }}
+          >
+            {loading ? 'Confirming...' : 'Connect Wallet & Get Location'}
+          </button>
+        ) : (
+          /* Bağlantı Sonrası Bilgi Kartı */
+          <div style={{ border: '1px solid #EAEAEA', borderRadius: '16px', padding: '24px', maxWidth: '350px', width: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '15px' }}>
+              <span style={{ width: '10px', height: '10px', backgroundColor: '#00D395', borderRadius: '50%' }}></span>
+              <span style={{ fontWeight: 'bold', color: '#0052FF' }}>Base Connected</span>
             </div>
-            <button onClick={handleCheckIn} disabled={hasCheckedIn || location.city === 'Locating...'} style={{ width: '100%', padding: '14px', borderRadius: '8px', border: 'none', backgroundColor: hasCheckedIn ? '#00D632' : 'white', color: hasCheckedIn ? 'white' : '#0052FF', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              {hasCheckedIn ? '✓ Done for Today!' : 'Check-In Here'}
+            
+            <p style={{ fontSize: '13px', backgroundColor: '#F5F5F5', padding: '10px', borderRadius: '8px', wordBreak: 'break-all', margin: '10px 0' }}>
+              {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
+            </p>
+            
+            {location ? (
+              <div style={{ marginTop: '15px', backgroundColor: '#F0F5FF', padding: '12px', borderRadius: '8px', textAlign: 'left' }}>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}><b>📍 Enlem:</b> {location.enlem.toFixed(4)}</p>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}><b>📍 Boylam:</b> {location.boylam.toFixed(4)}</p>
+              </div>
+            ) : (
+              <p style={{ color: '#888', fontSize: '13px' }}>Konum izni bekleniyor...</p>
+            )}
+
+            {/* Cüzdan Koparma Butonu */}
+            <button 
+              onClick={handleDisconnect}
+              style={{ marginTop: '20px', backgroundColor: 'transparent', color: '#FF3B30', border: '1px solid #FF3B30', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}
+            >
+              Disconnect Wallet
             </button>
           </div>
         )}
       </div>
-
-      <div style={{ marginBottom: '25px' }}>
-        {walletAddress ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ backgroundColor: '#00D632', padding: '12px 24px', borderRadius: '24px', fontWeight: 'bold', fontSize: '0.9rem' }}>🟢 {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}</div>
-            <button onClick={() => setWalletAddress('')} style={{ backgroundColor: '#FF3B30', color: 'white', border: 'none', padding: '12px 20px', borderRadius: '24px', cursor: 'pointer', fontWeight: 'bold' }}>Disconnect</button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <button onClick={handleConnectWallet} disabled={isConnecting} style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#0052FF', border: '4px solid white', color: 'white', cursor: 'pointer', fontSize: '1rem', fontWeight: '900', boxShadow: '0 6px 20px rgba(0,0,0,0.3)' }}>{isConnecting ? '...' : 'BASE'}</button>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', opacity: '0.9' }}>{isConnecting ? 'Signing...' : 'Connect Wallet'}</span>
-          </div>
-        )}
-      </div>
-    </main>
+    </div>
   );
 }

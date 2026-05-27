@@ -32,11 +32,17 @@ export default function BasecityHome() {
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
-    try {
-      const provider = sdk.wallet?.getEthereumProvider 
-        ? sdk.wallet.getEthereumProvider() 
-        : null;
 
+    try {
+      // GARANTİLİ YÖNTEM: Yeni SDK'da hem metot hem de doğrudan nesne kontrolü
+      let provider = null;
+      if (sdk?.wallet?.getEthereumProvider) {
+        provider = sdk.wallet.getEthereumProvider();
+      } else if (sdk?.wallet?.ethProvider) {
+        provider = sdk.wallet.ethProvider;
+      }
+
+      // 1. DURUM: Eğer Warpcast dışında (normal tarayıcıda) test ediyorsanız
       if (!provider) {
         const mockAddr = '0x71C241657550654321432143214321432103aed';
         const ok = window.confirm(
@@ -53,14 +59,17 @@ export default function BasecityHome() {
         return;
       }
 
+      // 2. DURUM: Gerçek Warpcast mobil/masaüstü istemcisi içi
       const accts = await provider.request({ 
         method: 'eth_requestAccounts' 
       });
 
       if (accts && accts.length > 0) {
-        const addr = accts[0];
+        const addr = Array.isArray(accts) ? accts[0] : accts;
+        
+        // Kullanıcıya ilk arayüz onayını sunuyoruz
         const ok = window.confirm(
-          `Connect wallet to Basecity Home?\n\nAddr: ${addr}`
+          `Do you want to confirm connection?\n\nAddr: ${addr}`
         );
         if (!ok) {
           setLoading(false);
@@ -68,6 +77,7 @@ export default function BasecityHome() {
         }
 
         try {
+          // Resmi cüzdan imza onay popup'ını tetikler
           const msg = `Login confirmation.\nWallet: ${addr}`;
           await provider.request({
             method: 'personal_sign',
@@ -75,11 +85,12 @@ export default function BasecityHome() {
           });
           setWallet(addr);
         } catch (sErr) {
-          console.error(sErr);
+          console.error("Signature rejected:", sErr);
         }
       }
     } catch (cErr) {
-      console.error(cErr);
+      console.error("Provider error:", cErr);
+      alert("Connection failed. Please open inside Warpcast Dev Tools.");
     } finally {
       setLoading(false);
     }
@@ -87,185 +98,88 @@ export default function BasecityHome() {
 
   return (
     <div style={{
-      padding: '20px',
-      fontFamily: 'sans-serif',
-      backgroundColor: '#f4f5f6',
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
+      padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6',
+      minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center'
     }}>
       <div style={{
-        backgroundColor: '#ffffff',
-        width: '100%',
-        maxWidth: '420px',
-        minHeight: '75vh',
-        borderRadius: '24px',
-        padding: '40px 24px',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        border: '1px solid #eef0f2'
+        backgroundColor: '#ffffff', width: '100%', maxWidth: '420px',
+        minHeight: '75vh', borderRadius: '24px', padding: '40px 24px',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.05)', display: 'flex',
+        flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #eef0f2'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <h1 style={{
-            fontSize: '32px',
-            color: '#0052FF',
-            fontWeight: '800',
-            margin: '0'
-          }}>Basecity Home</h1>
+          <h1 style={{ fontSize: '32px', color: '#0052FF', fontWeight: '800', margin: '0' }}>Basecity Home</h1>
         </div>
 
         {username && (
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            backgroundColor: '#F8F9FA',
-            padding: '10px 18px',
-            borderRadius: '50px',
-            margin: '20px auto',
-            border: '1px solid #E9ECEF',
-            width: 'fit-content'
+            display: 'flex', alignItems: 'center', gap: '10px',
+            backgroundColor: '#F8F9FA', padding: '10px 18px', borderRadius: '50px',
+            margin: '20px auto', border: '1px solid #E9ECEF', width: 'fit-content'
           }}>
             {pfpUrl ? (
-              <img src={pfpUrl} alt="PFP" style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%'
-              }} />
+              <img src={pfpUrl} alt="PFP" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
             ) : (
               <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                backgroundColor: '#0052FF',
-                color: '#fff',
-                fontSize: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold'
+                width: '24px', height: '24px', borderRadius: '50%',
+                backgroundColor: '#0052FF', color: '#fff', fontSize: '12px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
               }}>{username.charAt(0).toUpperCase()}</div>
             )}
-            <span style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#495057'
-            }}>@{username}</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#495057' }}>@{username}</span>
           </div>
         )}
 
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          flexGrow: 1,
-          justifyContent: 'center',
-          margin: '20px 0'
-        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center', margin: '20px 0' }}>
           {!wallet ? (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '20px'
-            }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
               <button
                 onClick={handleConnect}
                 disabled={loading}
                 style={{
-                  width: '150px',
-                  height: '150px',
-                  borderRadius: '50%',
-                  backgroundColor: '#0052FF',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontSize: '32px',
-                  fontWeight: '900',
-                  cursor: 'pointer',
-                  boxShadow: '0 12px 28px rgba(0,82,255,0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  lineHeight: '1',
-                  textAlign: 'center',
-                  padding: '0'
+                  width: '150px', height: '150px', borderRadius: '50%',
+                  backgroundColor: '#0052FF', color: '#ffffff', border: 'none',
+                  fontSize: '32px', fontWeight: '900', cursor: 'pointer',
+                  boxShadow: '0 12px 28px rgba(0,82,255,0.3)', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', padding: '0'
                 }}
               >
                 {loading ? '...' : 'Base'}
               </button>
-              <p style={{
-                color: '#0052FF',
-                fontSize: '16px',
-                fontWeight: '700',
-                margin: '0'
-              }}>
+              <p style={{ color: '#0052FF', fontSize: '16px', fontWeight: '700', margin: '0' }}>
                 {loading ? 'Awaiting Approval...' : 'Connect Wallet'}
               </p>
             </div>
           ) : (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              width: '100%'
-            }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
               <div style={{
-                border: '1px solid #EAEAEA',
-                borderRadius: '16px',
-                padding: '12px 16px',
-                backgroundColor: '#fcfcfc',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
+                border: '1px solid #EAEAEA', borderRadius: '16px', padding: '12px 16px',
+                backgroundColor: '#fcfcfc', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
               }}>
-                <span style={{
-                  fontSize: '13px',
-                  fontWeight: '700',
-                  color: '#0052FF'
-                }}>● Base Connected</span>
-                <span style={{
-                  fontFamily: 'monospace',
-                  fontSize: '12px',
-                  color: '#666'
-                }}>
+                <span style={{ fontSize: '13px', fontWeight: '700', color: '#0052FF' }}>● Base Connected</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#666' }}>
                   {wallet.substring(0, 6)}...{wallet.substring(wallet.length - 4)}
                 </span>
               </div>
 
               <div style={{
-                border: '1px solid #EAEAEA',
-                borderRadius: '16px',
-                padding: '16px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
+                border: '1px solid #EAEAEA', borderRadius: '16px', padding: '16px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
               }}>
                 <div>
                   <h3 style={{ margin: '0', fontSize: '15px' }}>Climate</h3>
                   <p style={{ margin: '0', fontSize: '12px', color: '#888' }}>Target Temp</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <button onClick={() => setTemp(t => t - 1)} style={{
-                    width: '32px', height: '32px', borderRadius: '50%',
-                    border: '1px solid #ccc', backgroundColor: '#fff'
-                  }}>-</button>
+                  <button onClick={() => setTemp(t => t - 1)} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid #ccc', backgroundColor: '#fff' }}>-</button>
                   <span style={{ fontSize: '18px', fontWeight: '800' }}>{temp}°C</span>
-                  <button onClick={() => setTemp(t => t + 1)} style={{
-                    width: '32px', height: '32px', borderRadius: '50%',
-                    border: '1px solid #ccc', backgroundColor: '#fff'
-                  }}>+</button>
+                  <button onClick={() => setTemp(t => t + 1)} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid #ccc', backgroundColor: '#fff' }}>+</button>
                 </div>
               </div>
 
               <div style={{
-                border: '1px solid #EAEAEA',
-                borderRadius: '16px',
-                padding: '16px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
+                border: '1px solid #EAEAEA', borderRadius: '16px', padding: '16px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
               }}>
                 <div>
                   <h3 style={{ margin: '0', fontSize: '15px' }}>Lights</h3>
@@ -273,27 +187,19 @@ export default function BasecityHome() {
                 </div>
                 <button onClick={() => setLight(!light)} style={{
                   padding: '8px 16px', borderRadius: '20px', border: 'none',
-                  backgroundColor: light ? '#0052FF' : '#E9ECEF',
-                  color: light ? '#fff' : '#495057', fontWeight: '700'
+                  backgroundColor: light ? '#0052FF' : '#E9ECEF', color: light ? '#fff' : '#495057', fontWeight: '700'
                 }}>{light ? 'ON' : 'OFF'}</button>
               </div>
 
               <button onClick={() => setWallet('')} style={{
-                marginTop: '10px', backgroundColor: 'transparent',
-                color: '#FF3B30', border: '1px solid #FF3B30',
-                padding: '12px', borderRadius: '12px',
-                fontSize: '13px', fontWeight: 'bold'
+                marginTop: '10px', backgroundColor: 'transparent', color: '#FF3B30',
+                border: '1px solid #FF3B30', padding: '12px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold'
               }}>Disconnect Wallet</button>
             </div>
           )}
         </div>
 
-        <div style={{
-          fontSize: '11px',
-          color: '#A1A1AA',
-          fontWeight: '500',
-          textAlign: 'center'
-        }}>Secured by Farcaster Frame v2</div>
+        <div style={{ fontSize: '11px', color: '#A1A1AA', fontWeight: '500', textAlign: 'center' }}>Secured by Farcaster Frame v2</div>
       </div>
     </div>
   );

@@ -11,42 +11,44 @@ export default function BasecityHome() {
   const [light, setLight] = useState(false);
   const [temp, setTemp] = useState(22);
 
+  // 1. Multi-Platform SDK Initializer (Phone & Laptop)
   useEffect(() => {
-    async function init() {
+    async function initFarcaster() {
       try {
         if (typeof window !== 'undefined' && sdk?.actions?.ready) {
+          // Tell Warpcast client that the mini-app is loaded
           await sdk.actions.ready();
+          
           const ctx = await sdk.context;
           if (ctx?.user) {
-            setUsername(ctx.user.username || 'User');
+            setUsername(ctx.user.username || ctx.user.displayName || 'User');
             setPfpUrl(ctx.user.pfpUrl || '');
           }
         }
       } catch (err) {
+        console.warn("Standalone browser or local environment active.");
         setUsername('developer_test');
       }
     }
-    init();
+    initFarcaster();
   }, []);
 
+  // 2. Dual-Platform Wallet Connection with Popup Confirmation
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
 
     try {
-      // GARANTİLİ YÖNTEM: Yeni SDK'da hem metot hem de doğrudan nesne kontrolü
-      let provider = null;
-      if (sdk?.wallet?.getEthereumProvider) {
-        provider = sdk.wallet.getEthereumProvider();
-      } else if (sdk?.wallet?.ethProvider) {
-        provider = sdk.wallet.ethProvider;
-      }
+      // Fetch the official Farcaster EIP-1193 provider (Works on Web & Mobile)
+      const provider = sdk?.wallet?.getEthereumProvider 
+        ? sdk.wallet.getEthereumProvider() 
+        : null;
 
-      // 1. DURUM: Eğer Warpcast dışında (normal tarayıcıda) test ediyorsanız
+      // Fallback: If opened via standalone browser outside of Warpcast
       if (!provider) {
         const mockAddr = '0x71C241657550654321432143214321432103aed';
         const ok = window.confirm(
-          `Connect wallet to Basecity Home?\n\nAddr: ${mockAddr}`
+          `Connect test wallet to Basecity Home?\n\nAddr: ${mockAddr}`
         );
         if (!ok) {
           setLoading(false);
@@ -59,7 +61,7 @@ export default function BasecityHome() {
         return;
       }
 
-      // 2. DURUM: Gerçek Warpcast mobil/masaüstü istemcisi içi
+      // Trigger standard account request popup inside Warpcast client
       const accts = await provider.request({ 
         method: 'eth_requestAccounts' 
       });
@@ -67,9 +69,9 @@ export default function BasecityHome() {
       if (accts && accts.length > 0) {
         const addr = Array.isArray(accts) ? accts[0] : accts;
         
-        // Kullanıcıya ilk arayüz onayını sunuyoruz
+        // Native popup confirmation for both phone & laptop screen
         const ok = window.confirm(
-          `Do you want to confirm connection?\n\nAddr: ${addr}`
+          `Do you authorize Basecity Home to connect?\n\nWallet: ${addr}`
         );
         if (!ok) {
           setLoading(false);
@@ -77,20 +79,22 @@ export default function BasecityHome() {
         }
 
         try {
-          // Resmi cüzdan imza onay popup'ını tetikler
-          const msg = `Login confirmation.\nWallet: ${addr}`;
+          // Trigger the official cryptographic signature popup (personal_sign)
+          const msg = `Secure connection to Basecity Home.\nWallet: ${addr}\nTimestamp: ${Date.now()}`;
           await provider.request({
             method: 'personal_sign',
             params: [msg, addr]
           });
+          
           setWallet(addr);
         } catch (sErr) {
-          console.error("Signature rejected:", sErr);
+          console.error("Signature request denied:", sErr);
+          alert("Signature rejected by user.");
         }
       }
     } catch (cErr) {
-      console.error("Provider error:", cErr);
-      alert("Connection failed. Please open inside Warpcast Dev Tools.");
+      console.error("Farcaster provider error:", cErr);
+      alert("Wallet connection failed. Open inside Warpcast (Web/Mobile).");
     } finally {
       setLoading(false);
     }

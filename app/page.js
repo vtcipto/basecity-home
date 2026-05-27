@@ -5,69 +5,59 @@ import { sdk } from '@farcaster/miniapp-sdk';
 
 export default function BasecityHome() {
   const [wallet, setWallet] = useState('');
+  const [username, setUsername] = useState('');
+  const [pfpUrl, setPfpUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [city, setCity] = useState('Istanbul');
   const [balloon, setBalloon] = useState('idle');
+  const [ctx, setCtx] = useState(null);
 
+  // 1. Fetch Real Farcaster User Data Immediately
   useEffect(() => {
     async function init() {
       try {
         if (typeof window !== 'undefined' && sdk?.actions?.ready) {
           await sdk.actions.ready();
+          const fCtx = await sdk.context;
+          if (fCtx) setCtx(fCtx);
         }
-      } catch (err) { console.warn("Dev mode ready."); }
+      } catch (err) { console.warn("Standalone."); }
     }
     init();
   }, []);
 
-  // BULLETPROOF MOBILE & DESKTOP FARCASTER WALLET ACTION
+  // 2. Real Wallet Connection & Live Profile Reveal
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
-    
     try {
-      // 1. ÖNCELİK: Warpcast Mobil içi en kararlı doğrudan tetikleyici
       if (sdk?.wallet?.actions?.connectWallet) {
         const res = await sdk.wallet.actions.connectWallet();
         if (res && res.address) {
           setWallet(res.address);
+          // Dynamically read real user data after confirmation
+          if (ctx?.user) {
+            setUsername(ctx.user.username || 'User');
+            setPfpUrl(ctx.user.pfpUrl || '');
+          } else {
+            setUsername('Warpcast User');
+          }
           setLoading(false);
           return;
         }
       }
-
-      // 2. ÖNCELİK: Laptop / Warpcast Web Gömülü Sağlayıcı Akışı
-      const p = sdk?.wallet?.getEthereumProvider 
-        ? sdk.wallet.getEthereumProvider() : null;
-
-      if (p && p.request) {
-        const accts = await p.request({ method: 'eth_requestAccounts' });
-        if (accts && accts.length > 0) {
-          setWallet(accts[0]);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 3. ÖNCELİK: Standart Tarayıcı / MetaMask / Coinbase Fallback
+      // Fallback for desktop/browser extension testing
       if (typeof window !== 'undefined' && window.ethereum) {
         const accts = await window.ethereum.request({ 
           method: 'eth_requestAccounts' 
         });
         if (accts && accts.length > 0) {
           setWallet(accts[0]);
-          setLoading(false);
-          return;
+          setUsername('Web3 User');
         }
       }
-
-      // Tüm yollar tükenirse simülasyon moduna al (Mağdur etmemek için)
-      const mock = '0x71C241657550654321432143214321432103aed';
-      setWallet(mock);
     } catch (cErr) {
       console.error(cErr);
-      // Hata olsa dahi kullanıcıyı içeri al ve simüle et
-      setWallet('0x71C241657550654321432143214321432103aed');
     } finally {
       setLoading(false);
     }
@@ -79,7 +69,7 @@ export default function BasecityHome() {
     try {
       if (sdk?.wallet?.actions?.sendTransaction) {
         await sdk.wallet.actions.sendTransaction({
-          chainId: 84532, // Base Sepolia
+          chainId: 8453, // Base Mainnet
           to: wallet,
           value: "0",
           data: "0x"
@@ -87,7 +77,7 @@ export default function BasecityHome() {
         alert(`Checked-in on Base Network! 🚀`);
         return;
       }
-      alert("Check-in successful (Simulated out of client). 💥");
+      alert("Check-in successful (Simulated). 💥");
     } catch (txErr) {
       alert("Transaction declined.");
       setBalloon('idle');
@@ -101,6 +91,18 @@ export default function BasecityHome() {
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: '32px', color: '#0052FF', fontWeight: '800', margin: '0' }}>Basecity Home</h1>
         </div>
+
+        {/* Real Profile Display AFTER wallet approval */}
+        {wallet && username && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#F8F9FA', padding: '10px 18px', borderRadius: '50px', margin: '15px auto', border: '1px solid #E9ECEF', width: 'fit-content' }}>
+            {pfpUrl ? (
+              <img src={pfpUrl} alt="PFP" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+            ) : (
+              <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#fff', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{username.charAt(0).toUpperCase()}</div>
+            )}
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#495057' }}>@{username}</span>
+          </div>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center', margin: '15px 0' }}>
           {!wallet ? (

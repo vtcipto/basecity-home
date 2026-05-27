@@ -10,45 +10,39 @@ export default function BasecityHome() {
   const [loading, setLoading] = useState(false);
   const [light, setLight] = useState(false);
   const [temp, setTemp] = useState(22);
+  const [farcasterCtx, setFarcasterCtx] = useState(null);
 
-  // 1. Multi-Platform SDK Initializer (Phone & Laptop)
+  // 1. Silent Initialization (No profile parsing until connection)
   useEffect(() => {
-    async function initFarcaster() {
+    async function init() {
       try {
         if (typeof window !== 'undefined' && sdk?.actions?.ready) {
-          // Tell Warpcast client that the mini-app is loaded
           await sdk.actions.ready();
-          
           const ctx = await sdk.context;
-          if (ctx?.user) {
-            setUsername(ctx.user.username || ctx.user.displayName || 'User');
-            setPfpUrl(ctx.user.pfpUrl || '');
-          }
+          if (ctx) setFarcasterCtx(ctx);
         }
       } catch (err) {
-        console.warn("Standalone browser or local environment active.");
-        setUsername('developer_test');
+        console.warn("Standalone context initialized safely.");
       }
     }
-    initFarcaster();
+    init();
   }, []);
 
-  // 2. Dual-Platform Wallet Connection with Popup Confirmation
+  // 2. Wallet Connection & Delayed Profile Reveal Process
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
 
     try {
-      // Fetch the official Farcaster EIP-1193 provider (Works on Web & Mobile)
       const provider = sdk?.wallet?.getEthereumProvider 
         ? sdk.wallet.getEthereumProvider() 
         : null;
 
-      // Fallback: If opened via standalone browser outside of Warpcast
+      // Browser Test Environment Fallback
       if (!provider) {
         const mockAddr = '0x71C241657550654321432143214321432103aed';
         const ok = window.confirm(
-          `Connect test wallet to Basecity Home?\n\nAddr: ${mockAddr}`
+          `Connect wallet to Basecity Home?\n\nAddr: ${mockAddr}`
         );
         if (!ok) {
           setLoading(false);
@@ -56,20 +50,19 @@ export default function BasecityHome() {
         }
         setTimeout(() => {
           setWallet(mockAddr);
+          setUsername('developer_test'); // Show name AFTER connection
           setLoading(false);
         }, 500);
         return;
       }
 
-      // Trigger standard account request popup inside Warpcast client
+      // Live Warpcast Environment
       const accts = await provider.request({ 
         method: 'eth_requestAccounts' 
       });
 
       if (accts && accts.length > 0) {
         const addr = Array.isArray(accts) ? accts[0] : accts;
-        
-        // Native popup confirmation for both phone & laptop screen
         const ok = window.confirm(
           `Do you authorize Basecity Home to connect?\n\nWallet: ${addr}`
         );
@@ -79,25 +72,36 @@ export default function BasecityHome() {
         }
 
         try {
-          // Trigger the official cryptographic signature popup (personal_sign)
-          const msg = `Secure connection to Basecity Home.\nWallet: ${addr}\nTimestamp: ${Date.now()}`;
+          const msg = `Secure login.\nWallet: ${addr}`;
           await provider.request({
             method: 'personal_sign',
             params: [msg, addr]
           });
           
           setWallet(addr);
+          // Reveal Farcaster user profile only AFTER successful connection
+          if (farcasterCtx?.user) {
+            setUsername(farcasterCtx.user.username || farcasterCtx.user.displayName || 'User');
+            setPfpUrl(farcasterCtx.user.pfpUrl || '');
+          } else {
+            setUsername('Warpcast User');
+          }
         } catch (sErr) {
-          console.error("Signature request denied:", sErr);
-          alert("Signature rejected by user.");
+          console.error(sErr);
         }
       }
     } catch (cErr) {
-      console.error("Farcaster provider error:", cErr);
-      alert("Wallet connection failed. Open inside Warpcast (Web/Mobile).");
+      console.error(cErr);
+      alert("Connection failed. Ensure you use Warpcast Developer Tools.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleDisconnect() {
+    setWallet('');
+    setUsername('');
+    setPfpUrl('');
   }
 
   return (
@@ -115,7 +119,8 @@ export default function BasecityHome() {
           <h1 style={{ fontSize: '32px', color: '#0052FF', fontWeight: '800', margin: '0' }}>Basecity Home</h1>
         </div>
 
-        {username && (
+        {/* User Profile Section - ONLY VISIBLE ONCE CONNECTED */}
+        {wallet && username && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
             backgroundColor: '#F8F9FA', padding: '10px 18px', borderRadius: '50px',
@@ -195,7 +200,7 @@ export default function BasecityHome() {
                 }}>{light ? 'ON' : 'OFF'}</button>
               </div>
 
-              <button onClick={() => setWallet('')} style={{
+              <button onClick={handleDisconnect} style={{
                 marginTop: '10px', backgroundColor: 'transparent', color: '#FF3B30',
                 border: '1px solid #FF3B30', padding: '12px', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold'
               }}>Disconnect Wallet</button>

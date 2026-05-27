@@ -7,7 +7,7 @@ export default function BasecityHome() {
   const [wallet, setWallet] = useState('');
   const [loading, setLoading] = useState(false);
   const [city, setCity] = useState('Istanbul');
-  const [balloonState, setBalloonState] = useState('idle');
+  const [balloon, setBalloon] = useState('idle');
 
   useEffect(() => {
     async function init() {
@@ -15,96 +15,73 @@ export default function BasecityHome() {
         if (typeof window !== 'undefined' && sdk?.actions?.ready) {
           await sdk.actions.ready();
         }
-      } catch (err) { console.warn("Standalone mode."); }
+      } catch (err) { console.warn("Standalone."); }
     }
     init();
   }, []);
 
+  // KESİN ÇÖZÜM: RESMİ NATIVE CONNECT METODU
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
     
     try {
-      // 1. ADIM: Farcaster v2 resmi yerleşik cüzdan yapısını çağır
-      let p = sdk?.wallet?.getEthereumProvider 
-        ? sdk.wallet.getEthereumProvider() 
-        : null;
-
-      // 2. ADIM: Eğer Warpcast dışındaysa standart tarayıcı cüzdanını dene
-      if (!p && typeof window !== 'undefined') {
-        p = window.ethereum || null;
+      // 1. Warpcast Mobil/Masaüstü İçi Doğrudan Native Bağlantı
+      if (sdk?.wallet?.actions?.connectWallet) {
+        const res = await sdk.wallet.actions.connectWallet();
+        if (res && res.address) {
+          const ok = window.confirm(
+            `Authorize connection?\n\nWallet: ${res.address}`
+          );
+          if (ok) setWallet(res.address);
+          setLoading(false);
+          return;
+        }
       }
 
-      if (!p) {
-        alert("No Web3 wallet found! Open inside Warpcast.");
+      // 2. Warpcast Dışı Standart Tarayıcı/MetaMask Fallback
+      if (typeof window !== 'undefined' && window.ethereum) {
+        const accts = await window.ethereum.request({ 
+          method: 'eth_requestAccounts' 
+        });
+        if (accts && accts.length > 0) {
+          const addr = Array.isArray(accts) ? accts[0] : accts;
+          const ok = window.confirm(`Authorize?\n\n${addr}`);
+          if (ok) setWallet(addr);
+        }
         setLoading(false);
         return;
       }
 
-      // 3. ADIM: Güvenli hesap isteği
-      const accts = await p.request({ 
-        method: 'eth_requestAccounts' 
-      });
-      
-      // HATA DÜZELTMESİ: Gelen adresin tipini doğrula ve string'e çevir
-      let targetAddr = '';
-      if (Array.isArray(accts) && accts.length > 0) {
-        targetAddr = accts[0];
-      } else if (typeof accts === 'string') {
-        targetAddr = accts;
-      } else if (accts && accts.address) {
-        targetAddr = accts.address;
-      }
-
-      if (!targetAddr) {
-        alert("Failed to fetch wallet address.");
-        setLoading(false);
-        return;
-      }
-
-      // Kullanıcıya onay penceresini göster
-      const ok = window.confirm(
-        `Authorize connection for:\n${targetAddr}`
-      );
-      
-      if (ok) {
-        setWallet(targetAddr);
-      }
+      alert("Please open inside Warpcast Client.");
     } catch (cErr) {
-      console.error("Connection error:", cErr);
-      // Hata detayını tam görebilmek için alert'ı genişlettim
-      alert(`Wallet interaction failed. Details: ${cErr.message || cErr}`);
+      console.error(cErr);
+      alert(`Error: ${cErr.message || cErr}`);
     } finally {
       setLoading(false);
     }
   }
 
+  // Güvenli TX Gönderim Yapısı
   async function handlePopAndTx() {
-    if (balloonState === 'popped') return;
-    setBalloonState('popped');
+    if (balloon === 'popped') return;
+    setBalloon('popped');
     try {
-      let p = sdk?.wallet?.getEthereumProvider 
-        ? sdk.wallet.getEthereumProvider() 
-        : (typeof window !== 'undefined' ? window.ethereum : null);
-
-      if (!p) return;
-      await p.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x14a34' }],
-      });
-
-      const txHash = await p.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from: wallet, to: wallet, value: '0x0',
-          data: '0x' + Array.from(`Basecity:${city}`)
-            .map(c => c.charCodeAt(0).toString(16)).join('')
-        }],
-      });
-      alert(`Popped & Checked-in!\nTx: ${txHash.substring(0, 15)}...`);
+      if (sdk?.wallet?.actions?.sendTransaction) {
+        // Farcaster v2 yerleşik Tx metodu
+        const txHash = await sdk.wallet.actions.sendTransaction({
+          chainId: 84532, // Base Sepolia Testnet
+          to: wallet,
+          value: "0",
+          data: "0x"
+        });
+        alert(`Popped & Checked-in!\nTx: ${txHash}`);
+        return;
+      }
+      alert("Tx simulated out of Warpcast.");
     } catch (txErr) {
       alert("Transaction aborted.");
-      setBalloonState('idle');
+      setBalloon('idle');
     }
   }
 
@@ -128,7 +105,7 @@ export default function BasecityHome() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', width: '100%' }}>
               
               <div style={{ width: '100%', border: '1px solid #EAEAEA', borderRadius: '12px', padding: '12px' }}>
-                <select value={city} onChange={(e) => { setCity(e.target.value); setBalloonState('idle'); }} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', backgroundColor: '#fff', fontSize: '14px', fontWeight: '600' }}>
+                <select value={city} onChange={(e) => { setCity(e.target.value); setBalloon('idle'); }} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', backgroundColor: '#fff', fontSize: '14px', fontWeight: '600' }}>
                   <option value="Istanbul">Istanbul 🇹🇷</option>
                   <option value="Izmir">Izmir 🇹🇷</option>
                   <option value="London">London 🇬🇧</option>
@@ -137,7 +114,7 @@ export default function BasecityHome() {
               </div>
 
               <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                {balloonState === 'idle' ? (
+                {balloon === 'idle' ? (
                   <button onClick={handlePopAndTx} style={{ width: '130px', height: '130px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#fff', border: 'none', fontWeight: '800', fontSize: '15px', cursor: 'pointer', boxShadow: '0 10px 25px rgba(0,82,255,0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0' }}>
                     <span>🎈</span>
                     <span>POP {city.toUpperCase()}</span>
@@ -152,7 +129,7 @@ export default function BasecityHome() {
                 <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#666' }}>{wallet.substring(0, 6)}...{wallet.substring(wallet.length - 4)}</span>
               </div>
 
-              <button onClick={() => { setWallet(''); setBalloonState('idle'); }} style={{ backgroundColor: 'transparent', color: '#FF3B30', border: '1px solid #FF3B30', padding: '10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', width: '100%', cursor: 'pointer' }}>Disconnect</button>
+              <button onClick={() => { setWallet(''); setBalloon('idle'); }} style={{ backgroundColor: 'transparent', color: '#FF3B30', border: '1px solid #FF3B30', padding: '10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', width: '100%', cursor: 'pointer' }}>Disconnect</button>
             </div>
           )}
         </div>

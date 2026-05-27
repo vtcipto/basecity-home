@@ -15,46 +15,65 @@ export default function BasecityHome() {
         if (typeof window !== 'undefined' && sdk?.actions?.ready) {
           await sdk.actions.ready();
         }
-      } catch (err) { console.warn("Standalone mode open."); }
+      } catch (err) { console.warn("Standalone mode."); }
     }
     init();
   }, []);
 
-  // BULLETPROOF WALLET CONNECTION METHOD
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
     
     try {
-      // Check every single potential provider without throwing errors
-      let p = null;
-      if (typeof window !== 'undefined') {
-        p = sdk?.wallet?.getEthereumProvider 
-          ? sdk.wallet.getEthereumProvider() 
-          : window.ethereum || null;
+      // 1. ADIM: Farcaster v2 resmi yerleşik cüzdan yapısını çağır
+      let p = sdk?.wallet?.getEthereumProvider 
+        ? sdk.wallet.getEthereumProvider() 
+        : null;
+
+      // 2. ADIM: Eğer Warpcast dışındaysa standart tarayıcı cüzdanını dene
+      if (!p && typeof window !== 'undefined') {
+        p = window.ethereum || null;
       }
 
       if (!p) {
-        alert("Web3 Wallet not found! Please open inside Warpcast or a Web3 Browser.");
+        alert("No Web3 wallet found! Open inside Warpcast.");
         setLoading(false);
         return;
       }
 
-      // Safe native account request
-      const accts = await p.request({ method: 'eth_requestAccounts' });
-      const accountList = Array.isArray(accts) ? accts : [accts];
+      // 3. ADIM: Güvenli hesap isteği
+      const accts = await p.request({ 
+        method: 'eth_requestAccounts' 
+      });
       
-      if (accountList && accountList.length > 0 && accountList[0]) {
-        const targetAddr = accountList[0];
-        
-        const ok = window.confirm(`Authorize connection for:\n${targetAddr}`);
-        if (!ok) { setLoading(false); return; }
-        
+      // HATA DÜZELTMESİ: Gelen adresin tipini doğrula ve string'e çevir
+      let targetAddr = '';
+      if (Array.isArray(accts) && accts.length > 0) {
+        targetAddr = accts[0];
+      } else if (typeof accts === 'string') {
+        targetAddr = accts;
+      } else if (accts && accts.address) {
+        targetAddr = accts.address;
+      }
+
+      if (!targetAddr) {
+        alert("Failed to fetch wallet address.");
+        setLoading(false);
+        return;
+      }
+
+      // Kullanıcıya onay penceresini göster
+      const ok = window.confirm(
+        `Authorize connection for:\n${targetAddr}`
+      );
+      
+      if (ok) {
         setWallet(targetAddr);
       }
     } catch (cErr) {
-      console.error("Connection failed:", cErr);
-      alert("Connection rejected or failed.");
+      console.error("Connection error:", cErr);
+      // Hata detayını tam görebilmek için alert'ı genişlettim
+      alert(`Wallet interaction failed. Details: ${cErr.message || cErr}`);
     } finally {
       setLoading(false);
     }
@@ -64,9 +83,9 @@ export default function BasecityHome() {
     if (balloonState === 'popped') return;
     setBalloonState('popped');
     try {
-      let p = typeof window !== 'undefined' 
-        ? (sdk?.wallet?.getEthereumProvider ? sdk.wallet.getEthereumProvider() : window.ethereum) 
-        : null;
+      let p = sdk?.wallet?.getEthereumProvider 
+        ? sdk.wallet.getEthereumProvider() 
+        : (typeof window !== 'undefined' ? window.ethereum : null);
 
       if (!p) return;
       await p.request({
@@ -78,7 +97,8 @@ export default function BasecityHome() {
         method: 'eth_sendTransaction',
         params: [{
           from: wallet, to: wallet, value: '0x0',
-          data: '0x' + Array.from(`Basecity:${city}`).map(c => c.charCodeAt(0).toString(16)).join('')
+          data: '0x' + Array.from(`Basecity:${city}`)
+            .map(c => c.charCodeAt(0).toString(16)).join('')
         }],
       });
       alert(`Popped & Checked-in!\nTx: ${txHash.substring(0, 15)}...`);

@@ -7,7 +7,7 @@ export default function BasecityHome() {
   const [walletAddress, setWalletAddress] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 1. Farcaster Başlatıcı (Uygulamayı hazır hale getirir)
+  // 1. Farcaster Başlatıcı
   useEffect(() => {
     const init = async () => {
       try {
@@ -19,44 +19,41 @@ export default function BasecityHome() {
     init();
   }, []);
 
-  // 2. Düzeltilmiş ve Kesin Çözümlü Cüzdan Bağlantı Fonksiyonu
+  // 2. Farcaster v2 Uyumlu Cüzdan Bağlantısı
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
     
     try {
+      // Farcaster v2 SDK'nın resmi cüzdan sağlayıcısı çağrısı
       const provider = sdk.wallet?.ethProvider;
       
       if (!provider) {
-        alert("Farcaster cüzdan sağlayıcısı bulunamadı. Lütfen Warpcast içerisinden açtığınızdan emin olun.");
+        alert("Farcaster cüzdan sağlayıcısı bulunamadı. Lütfen Warpcast içinden açtığınızdan emin olun.");
         setLoading(false);
         return;
       }
 
-      // Adım 1: Cüzdan hesap adresini talep et
+      // Kullanıcı butona bastığında resmi hesap izin isteğini tetikler
       const accounts = await provider.request({ method: 'eth_requestAccounts' });
       
-      // ÇÖZÜM: accounts verisinin dizi olduğunu doğrula ve içinden adresi temizce çek
       if (accounts && Array.isArray(accounts) && accounts.length > 0) {
-        const cleanAddress = accounts[0]; 
+        const address = accounts[0]; // İlk adresi dizi içinden temizce alıyoruz
         
-        // Adım 2: Güvenli İmza Onayı (Parametre dizilimi Farcaster cüzdan kurallarına göre düzeltildi)
+        // Güvenli personal_sign imza isteği (Farcaster parametre sırasına göre)
         try {
-          const mesajMetni = `Basecity Home uygulamasina guvenli baglanti onayi.\nCuzdan: ${cleanAddress}`;
+          const mesajMetni = `Basecity Home uygulamasina guvenli baglanti onayi.\nCuzdan: ${address}`;
           
           await provider.request({
             method: 'personal_sign',
-            params: [mesajMetni, cleanAddress] 
+            params: [mesajMetni, address] 
           });
           
-          // Her şey başarılıysa adresi kaydet
-          setWalletAddress(cleanAddress);
+          setWalletAddress(address);
         } catch (signError) {
           console.error("İmza reddedildi:", signError);
           alert("Cüzdan imza onayı reddedildi.");
         }
-      } else {
-        alert("Cüzdan adresi alınamadı.");
       }
     } catch (connectError) {
       console.error("Bağlantı hatası:", connectError);
@@ -72,7 +69,7 @@ export default function BasecityHome() {
   }
 
   return (
-    <div style={{ padding: '30px 20px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', textAlign: 'center', backgroundColor: '#ffffff', color: '#111111', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+    <div style={{ padding: '30px 20px', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', textAlign: 'center', backgroundColor: '#ffffff', color: '#111111', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
       
       {/* Üst Başlık */}
       <div>
@@ -80,11 +77,11 @@ export default function BasecityHome() {
         <p style={{ color: '#666', fontSize: '14px', marginTop: '0', fontWeight: '500' }}>Farcaster Mini App</p>
       </div>
       
-      {/* Orta Buton ve Alan */}
+      {/* Tam İstediğiniz Tasarıma Sahip Orta Buton Alanı */}
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', flexGrow: 1 }}>
         {!walletAddress ? (
-          /* İstediğiniz Mavi Yuvarlak Base Butonu ve Altındaki Yazı */
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+            {/* Yuvarlak, Mavi, Büyük Base Butonu */}
             <button 
               onClick={handleConnect} 
               disabled={loading}
@@ -108,6 +105,7 @@ export default function BasecityHome() {
             >
               {loading ? '...' : 'Base'}
             </button>
+            {/* Altındaki Cüzdanı Bağla Yazısı */}
             <p style={{ color: '#0052FF', fontSize: '16px', fontWeight: '700', margin: '0', letterSpacing: '-0.2px' }}>
               {loading ? 'Onay Bekleniyor...' : 'Cüzdanı Bağla'}
             </p>

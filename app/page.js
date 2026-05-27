@@ -12,7 +12,7 @@ export default function BasecityHome() {
   const [temp, setTemp] = useState(22);
   const [farcasterCtx, setFarcasterCtx] = useState(null);
 
-  // 1. Silent Initialization (No profile parsing until connection)
+  // 1. Core Mini-App Initialization Lifecycle
   useEffect(() => {
     async function init() {
       try {
@@ -22,24 +22,23 @@ export default function BasecityHome() {
           if (ctx) setFarcasterCtx(ctx);
         }
       } catch (err) {
-        console.warn("Standalone context initialized safely.");
+        console.warn("Standalone browser preview mode.");
       }
     }
     init();
   }, []);
 
-  // 2. Wallet Connection & Delayed Profile Reveal Process
+  // 2. Official Farcaster v2 Direct Wallet Connection Flow
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
 
     try {
-      const provider = sdk?.wallet?.getEthereumProvider 
-        ? sdk.wallet.getEthereumProvider() 
-        : null;
+      // Fetch the explicit native Farcaster wallet provider
+      const hasNativeWallet = sdk?.wallet?.actions?.connectWallet;
 
-      // Browser Test Environment Fallback
-      if (!provider) {
+      // FALLBACK: Browser environment development simulation
+      if (!hasNativeWallet) {
         const mockAddr = '0x71C241657550654321432143214321432103aed';
         const ok = window.confirm(
           `Connect wallet to Basecity Home?\n\nAddr: ${mockAddr}`
@@ -50,19 +49,19 @@ export default function BasecityHome() {
         }
         setTimeout(() => {
           setWallet(mockAddr);
-          setUsername('developer_test'); // Show name AFTER connection
+          setUsername('developer_test'); // Reveals profile AFTER mock approval
           setLoading(false);
-        }, 500);
+        }, 400);
         return;
       }
 
-      // Live Warpcast Environment
-      const accts = await provider.request({ 
-        method: 'eth_requestAccounts' 
-      });
-
-      if (accts && accts.length > 0) {
-        const addr = Array.isArray(accts) ? accts[0] : accts;
+      // PRODUCTION: Trigger official Warpcast client-native connection request
+      const connectionResult = await sdk.wallet.actions.connectWallet();
+      
+      if (connectionResult && connectionResult.address) {
+        const addr = connectionResult.address;
+        
+        // Native modal notification approval layout
         const ok = window.confirm(
           `Do you authorize Basecity Home to connect?\n\nWallet: ${addr}`
         );
@@ -71,28 +70,20 @@ export default function BasecityHome() {
           return;
         }
 
-        try {
-          const msg = `Secure login.\nWallet: ${addr}`;
-          await provider.request({
-            method: 'personal_sign',
-            params: [msg, addr]
-          });
-          
-          setWallet(addr);
-          // Reveal Farcaster user profile only AFTER successful connection
-          if (farcasterCtx?.user) {
-            setUsername(farcasterCtx.user.username || farcasterCtx.user.displayName || 'User');
-            setPfpUrl(farcasterCtx.user.pfpUrl || '');
-          } else {
-            setUsername('Warpcast User');
-          }
-        } catch (sErr) {
-          console.error(sErr);
+        // Finalize secure app state and securely parse Farcaster Context Profile
+        setWallet(addr);
+        if (farcasterCtx?.user) {
+          setUsername(farcasterCtx.user.username || farcasterCtx.user.displayName || 'User');
+          setPfpUrl(farcasterCtx.user.pfpUrl || '');
+        } else {
+          setUsername('Warpcast User');
         }
+      } else {
+        alert("Wallet linkage declined or provider unavailable.");
       }
     } catch (cErr) {
-      console.error(cErr);
-      alert("Connection failed. Ensure you use Warpcast Developer Tools.");
+      console.error("Farcaster connection critical error:", cErr);
+      alert("Connection failed. Please use official Warpcast Developer Tools.");
     } finally {
       setLoading(false);
     }
@@ -119,7 +110,7 @@ export default function BasecityHome() {
           <h1 style={{ fontSize: '32px', color: '#0052FF', fontWeight: '800', margin: '0' }}>Basecity Home</h1>
         </div>
 
-        {/* User Profile Section - ONLY VISIBLE ONCE CONNECTED */}
+        {/* User Identity Profile Badge - SECURELY SHOWN ONLY AFTER CONNECTION */}
         {wallet && username && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
@@ -161,6 +152,7 @@ export default function BasecityHome() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+              
               <div style={{
                 border: '1px solid #EAEAEA', borderRadius: '16px', padding: '12px 16px',
                 backgroundColor: '#fcfcfc', display: 'flex', justifyContent: 'space-between', alignItems: 'center'

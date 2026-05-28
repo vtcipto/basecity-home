@@ -51,7 +51,7 @@ export default function BasecityHome() {
       });
 
       if (accounts && accounts.length > 0) {
-        const realUserAddress = accounts[0] || accounts;
+        const realUserAddress = accounts || accounts;
         const isAuthorized = window.confirm(
           `Connect Basecity Home with your wallet?\n\nAddress:\n${realUserAddress}`
         );
@@ -106,7 +106,7 @@ export default function BasecityHome() {
     }
   }
   return (
-    <div style={{ padding: '20px 10px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflowX: 'hidden', position: 'relative' }}>
+    <div style={{ padding: '20px 10px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
       
       {confetti.map((c) => (
         <div key={c.id} style={{
@@ -125,33 +125,34 @@ export default function BasecityHome() {
         }
       `}</style>
 
-      <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', minHeight: '70vh', borderRadius: '24px', padding: '30px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #eef0f2', zIndex: 10 }}>
+      {/* TEK ANA KART YAPISI - Asla taşma yapmaz */}
+      <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', minHeight: '75vh', borderRadius: '24px', padding: '25px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #eef0f2', zIndex: 10 }}>
         
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: '32px', color: '#0052FF', fontWeight: '800', margin: '0' }}>Basecity Home</h1>
         </div>
 
         {wallet && username && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#F8F9FA', padding: '10px 18px', borderRadius: '50px', margin: '15px auto', border: '1px solid #E9ECEF', width: 'fit-content' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#F8F9FA', padding: '8px 16px', borderRadius: '50px', margin: '10px auto', border: '1px solid #E9ECEF', width: 'fit-content' }}>
             {pfpUrl ? (
-              <img src={pfpUrl} alt="PFP" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+              <img src={pfpUrl} alt="PFP" style={{ width: '22px', height: '22px', borderRadius: '50%' }} />
             ) : (
-              <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#fff', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{username.charAt(0).toUpperCase()}</div>
+              <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{username.charAt(0).toUpperCase()}</div>
             )}
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#495057' }}>@{username}</span>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#495057' }}>@{username}</span>
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center', margin: '15px 0', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center', margin: '10px 0', gap: '15px' }}>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '12px', fontWeight: '700', color: '#666', textTransform: 'uppercase' }}>Select Your Country:</label>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: '#666', textTransform: 'uppercase' }}>Select Your Country:</label>
               <select 
                 value={country}
                 onChange={(e) => handleCountryChange(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #e2e8f0', fontSize: '14px', outline: 'none', backgroundColor: '#fff', fontWeight: '500', color: '#333' }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '2px solid #e2e8f0', fontSize: '14px', outline: 'none', backgroundColor: '#fff', fontWeight: '500', color: '#333' }}
               >
                 <option value="">-- Ülke Seçiniz --</option>
                 {ALL_COUNTRIES.map((c) => (
@@ -164,11 +165,11 @@ export default function BasecityHome() {
 
             {ALL_COUNTRIES.find(c => c.name === country)?.cities && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '12px', fontWeight: '700', color: '#0052FF', textTransform: 'uppercase' }}>Select Your City:</label>
+                <label style={{ fontSize: '11px', fontWeight: '700', color: '#0052FF', textTransform: 'uppercase' }}>Select Your City:</label>
                 <select 
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #0052FF', fontSize: '14px', outline: 'none', backgroundColor: '#fff', fontWeight: '500', color: '#333' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '2px solid #0052FF', fontSize: '14px', outline: 'none', backgroundColor: '#fff', fontWeight: '500', color: '#333' }}
                 >
                   <option value="">-- Şehir Seçiniz --</option>
                   {ALL_COUNTRIES.find(c => c.name === country).cities.map((cityName) => (
@@ -181,40 +182,40 @@ export default function BasecityHome() {
             )}
           </div>
           {!wallet ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginTop: '15px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginTop: '10px' }}>
               <button 
                 onClick={handleConnect} 
                 disabled={loading} 
-                style={{ width: '140px', height: '140px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#ffffff', border: 'none', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0, 82, 255, 0.3)' }}
+                style={{ width: '120px', height: '120px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#ffffff', border: 'none', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0, 82, 255, 0.3)' }}
               >
                 {loading ? 'Connecting...' : 'Connect Wallet'}
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-              <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+              <div style={{ height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {balloon === 'idle' ? (
                   <button 
                     onClick={handlePopBalloon} 
                     disabled={txLoading}
-                    style={{ width: '130px', height: '130px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#fff', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(0,82,255,0.2)' }}
+                    style={{ width: '110px', height: '110px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#fff', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 6px 16px rgba(0,82,255,0.2)' }}
                   >
                     <span>🎈</span>
-                    <span style={{ fontSize: '11px', marginTop: '4px' }}>POP {country.toUpperCase()} {city && `- ${city.toUpperCase()}`}</span>
+                    <span style={{ fontSize: '10px', marginTop: '2px' }}>POP {country.toUpperCase()}</span>
                   </button>
                 ) : (
-                  <div style={{ fontSize: '54px' }}>💥</div>
+                  <div style={{ fontSize: '44px' }}>💥</div>
                 )}
               </div>
 
-              <div style={{ width: '100%', border: '1px solid #EAEAEA', borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
-                <span style={{ fontSize: '12px', fontWeight: '700', color: '#0052FF' }}>● Connected: </span>
+              <div style={{ width: '100%', border: '1px solid #EAEAEA', borderRadius: '12px', padding: '8px', textAlign: 'center' }}>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: '#0052FF' }}>● Connected: </span>
                 <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#666' }}>
                   {wallet.slice(0, 6)}...{wallet.slice(-4)}
                 </span>
                 <button 
                   onClick={() => { setWallet(''); setUsername(''); setBalloon('idle'); }}
-                  style={{ display: 'block', margin: '10px auto 0 auto', padding: '6px 12px', border: '1px solid #FF3B30', borderRadius: '6px', backgroundColor: 'transparent', color: '#FF3B30', fontSize: '12px', cursor: 'pointer', fontWeight: '600' }}
+                  style={{ display: 'block', margin: '6px auto 0 auto', padding: '4px 10px', border: '1px solid #FF3B30', borderRadius: '6px', backgroundColor: 'transparent', color: '#FF3B30', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}
                 >
                   Disconnect
                 </button>
@@ -224,56 +225,35 @@ export default function BasecityHome() {
 
         </div>
 
-        <div style={{ fontSize: '11px', color: '#A1A1AA', fontWeight: '500', textAlign: 'center', marginTop: '15px' }}>
+        {/* KART İÇİ KOMPAKT İLK 3 ŞEHİR LİSTESİ */}
+        <div style={{ marginTop: '10px', paddingTop: '12px', borderTop: '1px solid #EFEFEF' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+            <span style={{ fontSize: '14px' }}>🏆</span>
+            <span style={{ fontSize: '12px', color: '#111827', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top 3 Cities</span>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {[
+              { rank: '🥇', city: 'İstanbul', count: 142, flag: '🇹🇷' },
+              { rank: '🥈', city: 'New York', count: 98, flag: '🇺🇸' },
+              { rank: '🥉', city: 'London', count: 64, flag: '🇬🇧' }
+            ].map((item) => (
+              <div key={item.city} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid #F1F3F5' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px' }}>{item.rank}</span>
+                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>{item.flag} {item.city}</span>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: '#0052FF', backgroundColor: '#E6EFFF', padding: '2px 8px', borderRadius: '10px' }}>{item.count} POPs</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ fontSize: '10px', color: '#A1A1AA', fontWeight: '500', textAlign: 'center', marginTop: '10px' }}>
           Secured by Farcaster Identity
         </div>
 
       </div>
-
-      {balloon === 'popped' && (
-        <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', borderRadius: '24px', padding: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eef0f2', zIndex: 10, marginTop: '20px', display: 'flex', flexDirection: 'column' }}>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
-            <span style={{ fontSize: '20px' }}>🏆</span>
-            <h2 style={{ fontSize: '18px', color: '#111827', fontWeight: '750', margin: '0' }}>Top Check-In Cities</h2>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {[
-              { rank: 1, country: 'Türkiye', city: 'İstanbul', count: 142, flag: '🇹🇷' },
-              { rank: 2, country: 'United States', city: 'New York', count: 98, flag: '🇺🇸' },
-              { rank: 3, country: 'United Kingdom', city: 'London', count: 64, flag: '🇬🇧' },
-              { rank: 4, country: 'Türkiye', city: 'İzmir', count: 45, flag: '🇹🇷' },
-              { rank: 5, country: 'Germany', city: 'Berlin', count: 21, flag: '🇩🇪' },
-            ].map((item) => (
-              <div key={item.rank} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', backgroundColor: item.rank <= 3 ? '#F0F5FF' : '#F9FAFB', borderRadius: '12px', border: item.rank <= 3 ? '1px solid #D6E4FF' : '1px solid #F3F4F6' }}>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '14px', fontWeight: '800', color: item.rank === 1 ? '#0052FF' : '#4B5563', width: '20px' }}>
-                    {item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : item.rank === 3 ? '🥉' : `#${item.rank}`}
-                  </span>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#1F2937' }}>
-                      {item.flag} {item.city}
-                    </span>
-                    <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: '500' }}>
-                      {item.country}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ backgroundColor: item.rank <= 3 ? '#0052FF' : '#E5E7EB', color: item.rank <= 3 ? '#ffffff' : '#4B5563', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '700' }}>
-                  {item.count} POPs
-                </div>
-
-              </div>
-            ))}
-          </div>
-
-        </div>
-      )}
-
     </div>
   );
 }

@@ -14,8 +14,8 @@ export default function BasecityHome() {
   const [country, setCountry] = useState('United States');
   const [city, setCity] = useState('');
 
-  const [balloon, setBalloon] = useState('idle');
-  const [baseFragments, setBaseFragments] = useState([]);
+  const [balloon, setBalloon] = useState('idle'); // 'idle', 'popping', 'popped'
+  const [baseFragments, setBaseFragments] = useState([]); // Dağılacak yavaş BASE parçacıkları
 
   const [leaderboard, setLeaderboard] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -34,22 +34,6 @@ export default function BasecityHome() {
   const handleCountryChange = (countryName) => {
     setCountry(countryName);
     setCity('');
-  };
-
-  // FARCASTER FRAME V2 STANDARTLARINA UYGUN RESMİ PAYLAŞIM FONKSİYONU
-  const handleShareApp = () => {
-    // Projenizi Vercel'e yüklediğinizde canlı domain adresinizi buraya yazın:
-    const appUrl = 'https://vercel.app'; 
-    
-    const shareText = `I just checked-in to ${country}${city ? ` (${city})` : ''} on Basecity Home! 🎈✨ Come pop the giant BASE balloon and support your country on-chain! 🏆🔵`;
-    const warpcastIntentUrl = `https://warpcast.com{encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(appUrl)}`;
-    
-    // Farcaster in-app (Warpcast içi) tarayıcı protokol kontrolü
-    if (typeof window !== 'undefined' && sdk?.actions?.openUrl) {
-      sdk.actions.openUrl(warpcastIntentUrl); // Warpcast içinde çalışan resmi komut
-    } else if (typeof window !== 'undefined') {
-      window.open(warpcastIntentUrl, '_blank'); // Normal web tarayıcıları için yedek plan
-    }
   };
 
   const fetchRealContractData = async () => {
@@ -111,7 +95,11 @@ export default function BasecityHome() {
         }
         setWallet(realUserAddress);
       }
-    } catch (error) { console.error(error); } finally { setLoading(false); }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function triggerSlowMotionBurst() {
@@ -168,7 +156,7 @@ export default function BasecityHome() {
   return (
     <div style={{ padding: '20px 10px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
       
-      {/* SLOW-MOTION "BASE" PARÇACIKLI GÖRSEL ŞÖLEN */}
+      {/* SLOW-MOTION "BASE" PARÇACIKLARI */}
       {baseFragments.map((f) => (
         <div key={f.id} style={{
           position: 'absolute', top: '45%', left: '50%',
@@ -278,7 +266,7 @@ export default function BasecityHome() {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
               <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
                 
                 {balloon === 'idle' || balloon === 'popping' ? (
@@ -306,26 +294,9 @@ export default function BasecityHome() {
                 )}
               </div>
               
-              {/* SDK GÜVENLİĞİNE UYGUN RESMİ BUTON YAPISI */}
-              <button 
-                onClick={handleShareApp}
-                style={{
-                  width: '100%', padding: '11px 14px', borderRadius: '12px',
-                  backgroundColor: 'transparent', border: '2px solid #0052FF',
-                  color: '#0052FF', fontSize: '13px', fontWeight: '750',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', gap: '8px', transition: 'all 0.2s',
-                  boxShadow: '0 2px 6px rgba(0, 82, 255, 0.04)'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#0052FF'; e.currentTarget.style.color = '#fff'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#0052FF'; }}
-              >
-                <span>📢</span> Share App & Invite Frens
-              </button>
-
               <button 
                 onClick={() => { setWallet(''); setUsername(''); setBalloon('idle'); }}
-                style={{ background: 'none', border: 'none', color: '#A1A1AA', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline', marginTop: '4px' }}
+                style={{ background: 'none', border: 'none', color: '#A1A1AA', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Disconnect Account
               </button>

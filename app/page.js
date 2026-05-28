@@ -67,11 +67,18 @@ export default function BasecityHome() {
 
   useEffect(() => {
     async function initFarcaster() {
-      try { if (typeof window !== 'undefined') await sdk.actions.ready(); } catch (err) { console.warn(err); }
+      try {
+        if (typeof window !== 'undefined' && sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
+          await sdk.actions.ready();
+        }
+      } catch (err) {
+        console.warn("Farcaster context initialization skipped, loading web fallback.");
+      }
     }
     initFarcaster();
     fetchRealContractData();
   }, []);
+
 
   async function handleConnect() {
     if (loading) return;

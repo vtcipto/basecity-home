@@ -37,21 +37,18 @@ export default function BasecityHome() {
   };
 
   // UYGULAMAYI WARPCAST ÜZERİNDE PAYLAŞTIRAN YENİ FONKSİYON (Cast Intent)
-  const handleShareApp = () => {
-    // Mini uygulamanızın canlıdaki URL'sini buraya yerleştirin (Örn: Vercel linkiniz)
-    const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://basecity-home.vercel.app';
-    
-    // Paylaşım esnasında yazılacak hazır coşkulu metin
+    const handleShareApp = () => {
+    const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://vercel.app';
     const shareText = `I just checked-in to ${country}${city ? ` (${city})` : ''} on Basecity Home! 🎈✨ Come pop the giant BASE balloon and support your country on-chain! 🏆🔵`;
-    
-    // Warpcast Cast Intent URL'si oluşturuluyor
     const warpcastIntentUrl = `https://warpcast.com{encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(appUrl)}`;
     
-    // Farcaster in-app browser veya normal tarayıcıda yönlendirme yapıyoruz
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && sdk && sdk.actions && typeof sdk.actions.openUrl === 'function') {
+      sdk.actions.openUrl(warpcastIntentUrl);
+    } else if (typeof window !== 'undefined') {
       window.open(warpcastIntentUrl, '_blank');
     }
   };
+
 
   const fetchRealContractData = async () => {
     try {

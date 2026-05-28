@@ -106,8 +106,10 @@ export default function BasecityHome() {
     }
   }
   return (
+      
     <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
       
+      {/* Konfeti Efekti */}
       {confetti.map((c) => (
         <div key={c.id} style={{
           position: 'absolute', top: '-10px', left: `${c.left}%`,
@@ -125,6 +127,7 @@ export default function BasecityHome() {
         }
       `}</style>
 
+      {/* TEK ANA KART - Ekranın bölünmesini engelleyen ana taşıyıcı */}
       <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', minHeight: '70vh', borderRadius: '24px', padding: '30px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #eef0f2', zIndex: 10 }}>
         
         <div style={{ textAlign: 'center' }}>
@@ -142,10 +145,13 @@ export default function BasecityHome() {
           </div>
         )}
 
+        {/* ORTA İÇERİK ALANI */}
         <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center', margin: '15px 0', gap: '20px' }}>
           
+          {/* ÜLKE VE ŞEHİR SEÇİM ALANI - KARTIN İÇİNE ENTEGRE EDİLDİ */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
             
+            {/* Ülke Seçimi */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={{ fontSize: '12px', fontWeight: '700', color: '#666', textTransform: 'uppercase' }}>Select Your Country:</label>
               <select 
@@ -162,6 +168,7 @@ export default function BasecityHome() {
               </select>
             </div>
 
+            {/* Şehir Seçimi (Sadece seçilen ülkenin şehirleri varsa şıkça altında açılır) */}
             {ALL_COUNTRIES.find(c => c.name === country)?.cities && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#0052FF', textTransform: 'uppercase' }}>Select Your City:</label>
@@ -180,6 +187,8 @@ export default function BasecityHome() {
               </div>
             )}
           </div>
+
+          {/* AKŞIYON BUTONLARI */}
           {!wallet ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginTop: '15px' }}>
               <button 
@@ -200,7 +209,7 @@ export default function BasecityHome() {
                     style={{ width: '130px', height: '130px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#fff', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(0,82,255,0.2)' }}
                   >
                     <span>🎈</span>
-                    <span style={{ fontSize: '11px', marginTop: '4px' }}>POP {country.toUpperCase()}</span>
+                    <span style={{ fontSize: '11px', marginTop: '4px' }}>POP {country.toUpperCase()} {city && `- ${city.toUpperCase()}`}</span>
                   </button>
                 ) : (
                   <div style={{ fontSize: '54px' }}>💥</div>

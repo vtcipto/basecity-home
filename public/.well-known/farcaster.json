@@ -7,14 +7,15 @@
   "frame": {
     "version": "1",
     "name": "Basecity Home",
-    "iconUrl": "https://vercel.app",
+    "iconUrl": "https://basecity-home.vercel.app",
     "homeUrl": "https://basecity-home.vercel.app",
-    "imageUrl": "https://vercel.app",
+    "imageUrl": "https://basecity-home.vercel.app",
     "buttonTitle": "Check-In",
-    "webhookUrl": "https://vercel.app",
+    "webhookUrl": "https://basecity-home.vercel.app",
     "redirectUrls": [
       "https://basecity-home.vercel.app",
       "https://basecity-home.vercel.app/",
+      "https://warpcast.com",
       "https://warpcast.com"
     ],
     "triggerDomains": [

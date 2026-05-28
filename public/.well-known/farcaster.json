@@ -1,15 +1,25 @@
 {
   "accountAssociation": {
-    "header": "eyJhbGciOiJFUzI1NksiLCJ0eXAiOiJKV1QifQ",
-    "payload": "eyJkb21haW4iOiJiYXNlY2l0eS1ob21lLnZlcmNlbC5hcHAifQ",
-    "signature": "MHcwSm9ZOTN..."
+    "header": "eyJmaWQiOiA4ODg4ODgsICJ0eXBlIjogImN1c3RvZHkiLCAia2V5IjogIjB4MDAwLi4uIn0",
+    "payload": "eyJkb21haW4iOiAiYmFzZWNpdHktaG9tZS52ZXJjZWwuYXBwIn0",
+    "signature": "MHgwMDAuLi4="
   },
   "frame": {
     "version": "1",
     "name": "Basecity Home",
     "iconUrl": "https://vercel.app",
     "homeUrl": "https://basecity-home.vercel.app",
-    "splashImageUrl": "https://vercel.app",
-    "splashBackgroundColor": "#f4f5f6"
+    "imageUrl": "https://vercel.app",
+    "buttonTitle": "Check-In",
+    "webhookUrl": "https://vercel.app",
+    "redirectUrls": [
+      "https://basecity-home.vercel.app",
+      "https://basecity-home.vercel.app/",
+      "https://warpcast.com"
+    ],
+    "triggerDomains": [
+      "basecity-home.vercel.app",
+      "warpcast.com"
+    ]
   }
 }

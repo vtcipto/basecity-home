@@ -1,0 +1,15 @@
+{
+  "accountAssociation": {
+    "header": "eyJhbGciOiJFUzI1NksiLCJ0eXAiOiJKV1QifQ",
+    "payload": "eyJkb21haW4iOiJiYXNlY2l0eS1ob21lLnZlcmNlbC5hcHAifQ",
+    "signature": "MHcwSm9ZOTN..."
+  },
+  "frame": {
+    "version": "1",
+    "name": "Basecity Home",
+    "iconUrl": "https://vercel.app",
+    "homeUrl": "https://basecity-home.vercel.app",
+    "splashImageUrl": "https://vercel.app",
+    "splashBackgroundColor": "#f4f5f6"
+  }
+}

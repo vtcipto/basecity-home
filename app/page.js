@@ -5,7 +5,7 @@ import sdk from '@farcaster/frame-sdk';
 import { useCheckInTx } from '../hooks/useCheckInTx';
 
 export default function BasecityHome() {
-  const { executeCheckIn, txLoading } = useCheckInTx();
+  const { executeCheckIn, getTotalCheckIns, txLoading } = useCheckInTx();
   const [wallet, setWallet] = useState('');
   const [username, setUsername] = useState('');
   const [pfpUrl, setPfpUrl] = useState('');

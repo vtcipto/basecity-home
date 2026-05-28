@@ -7,20 +7,9 @@
   "frame": {
     "version": "1",
     "name": "Basecity Home",
-    "iconUrl": "https://basecity-home.vercel.app",
     "homeUrl": "https://basecity-home.vercel.app",
-    "imageUrl": "https://basecity-home.vercel.app/image.png",
-    "buttonTitle": "Check-In",
-    "webhookUrl": "https://basecity-home.vercel.app/api/webhook",
-    "redirectUrls": [
-      "https://basecity-home.vercel.app",
-      "https://basecity-home.vercel/",
-      "https://warpcast.com",
-      "https://warpcast.com"
-    ],
-    "triggerDomains": [
-      "basecity-home.vercel.app",
-      "warpcast.com"
-    ]
+    "iconUrl": "https://basecity-home.vercel.app/icon.png",
+    "splashImageUrl": "https://basecity-home.vercel.app/kapak.png",
+    "splashBackgroundColor": "#0052FF"
   }
 }

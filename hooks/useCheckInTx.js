@@ -6,7 +6,7 @@ export function useCheckInTx() {
   const [txLoading, setTxLoading] = useState(false);
 
   // base.dev panelindeki "Builder Codes" sekmesinden aldığınız kendi kodunuzu buraya yapıştırın:
-  const MY_BUILDER_CODE = "bc_7p67cf9r;
+  const MY_BUILDER_CODE = "bc_7p67cf9r"
 
   const encodeCheckInData = (countryName) => {
     const functionSelector = "acbc4b3a";

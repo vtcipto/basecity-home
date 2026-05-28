@@ -17,7 +17,9 @@ export default function BasecityHome() {
   const [balloon, setBalloon] = useState('idle');
   const [confetti, setConfetti] = useState([]);
   
-  // Akıllı sözleşmeden (Smart Contract) gelecek gerçek ülke verilerini tutan durum (state)
+  // Kullanıcının bugün check-in yapıp yapmadığını tutan durum
+  const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
+
   const [leaderboard, setLeaderboard] = useState([
     { name: 'United States', count: 0, flag: '🇺🇸', code: 'US' },
     { name: 'Türkiye', count: 0, flag: '🇹🇷', code: 'TR' },
@@ -26,14 +28,31 @@ export default function BasecityHome() {
 
   const handleCountryChange = (countryName) => {
     setCountry(countryName);
-    setCity(''); // Ülke değişince eski seçili şehri temizler
+    setCity('');
   };
 
-  // Kontrattan (Smart Contract) gerçek check-in sayılarını çeken fonksiyon
+  // Yerel hafızadan kullanıcının bugün check-in yapıp yapmadığını sorgulayan fonksiyon
+  const checkDailyLimit = (userWallet) => {
+    if (!userWallet) return;
+    try {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD formatı
+      const lastCheckIn = localStorage.getItem(`checkin_${userWallet.toLowerCase()}`);
+      
+      if (lastCheckIn === today) {
+        setHasCheckedInToday(true);
+        setBalloon('popped'); // Bugün yaptıysa balonu patlamış göstererek kilitliyoruz
+      } else {
+        setHasCheckedInToday(false);
+        setBalloon('idle');
+      }
+    } catch (e) {
+      console.error("Localstorage okuma hatası:", e);
+    }
+  };
+
   const fetchRealContractData = async () => {
     try {
       if (typeof getTotalCheckIns === 'function') {
-        // Kontrattaki her ülke için güncel onaylanmış tx verilerini döngüyle çekiyoruz
         const updatedLeaderboard = await Promise.all(
           ALL_COUNTRIES.map(async (c) => {
             try {
@@ -49,7 +68,6 @@ export default function BasecityHome() {
           })
         );
 
-        // Sayıları en yüksekten en düşüğe sıralayıp sadece İLK 3 ülkeyi filtreliyoruz
         const sortedTop3 = updatedLeaderboard
           .sort((a, b) => b.count - a.count)
           .slice(0, 3);
@@ -57,7 +75,7 @@ export default function BasecityHome() {
         setLeaderboard(sortedTop3);
       }
     } catch (err) {
-      console.error("Sözleşmeden gerçek veriler alınamadı:", err);
+      console.error("Sözleşmeden veri alınamadı:", err);
     }
   };
 
@@ -72,15 +90,15 @@ export default function BasecityHome() {
       }
     }
     initFarcaster();
-    fetchRealContractData(); // Sayfa ilk açıldığında gerçek verileri getir
+    fetchRealContractData();
   }, []);
 
-  // Kullanıcı yeni bir check-in işlemini onayladığında listeyi anlık olarak tazele
+  // Cüzdan adresi her değiştiğinde günlük limit hakkını yeniden kontrol et
   useEffect(() => {
-    if (balloon === 'popped') {
-      fetchRealContractData();
+    if (wallet) {
+      checkDailyLimit(wallet);
     }
-  }, [balloon]);
+  }, [wallet]);
 
   async function handleConnect() {
     if (loading) return;
@@ -98,7 +116,7 @@ export default function BasecityHome() {
       });
 
       if (accounts && accounts.length > 0) {
-        const realUserAddress = accounts || accounts;
+        const realUserAddress = accounts[0] || accounts;
         const isAuthorized = window.confirm(
           `Connect Basecity Home with your wallet?\n\nAddress:\n${realUserAddress}`
         );
@@ -138,12 +156,27 @@ export default function BasecityHome() {
   }
 
   async function handlePopBalloon() {
-    if (balloon === 'popped' || txLoading) return;
+    if (balloon === 'popped' || txLoading || hasCheckedInToday) return;
 
     try {
+      // 1. Onchain Check-in işlemini başlat
       const txHash = await executeCheckIn(country); 
+
+      // 2. Günlük hak kaydı: Bugünün tarihini kullanıcının cüzdanına özel kaydet
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem(`checkin_${wallet.toLowerCase()}`, today);
+      setHasCheckedInToday(true);
+
+      // 3. Optimistic UI: Sayıyı arayüzde beklemeden anlık artır
+      setLeaderboard(prevList => 
+        prevList.map(item => 
+          item.name === country ? { ...item, count: item.count + 1 } : item
+        ).sort((a, b) => b.count - a.count)
+      );
+
       setBalloon('popped');
       triggerConfetti();
+
       setTimeout(() => {
         alert(`Success! Checked-in to ${country} 🚀\nTx: ${txHash}`);
       }, 200);
@@ -197,8 +230,9 @@ export default function BasecityHome() {
               <label style={{ fontSize: '11px', fontWeight: '700', color: '#666', textTransform: 'uppercase' }}>Select Your Country:</label>
               <select 
                 value={country}
+                disabled={hasCheckedInToday}
                 onChange={(e) => handleCountryChange(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '2px solid #e2e8f0', fontSize: '14px', outline: 'none', backgroundColor: '#fff', fontWeight: '500', color: '#333' }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '2px solid #e2e8f0', fontSize: '14px', outline: 'none', backgroundColor: hasCheckedInToday ? '#f3f4f6' : '#fff', fontWeight: '500', color: '#333' }}
               >
                 <option value="">-- Ülke Seçiniz --</option>
                 {ALL_COUNTRIES.map((c) => (
@@ -214,8 +248,9 @@ export default function BasecityHome() {
                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#0052FF', textTransform: 'uppercase' }}>Select Your City:</label>
                 <select 
                   value={city}
+                  disabled={hasCheckedInToday}
                   onChange={(e) => setCity(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '2px solid #0052FF', fontSize: '14px', outline: 'none', backgroundColor: '#fff', fontWeight: '500', color: '#333' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '2px solid #0052FF', fontSize: '14px', outline: 'none', backgroundColor: hasCheckedInToday ? '#f3f4f6' : '#fff', fontWeight: '500', color: '#333' }}
                 >
                   <option value="">-- Şehir Seçiniz --</option>
                   {ALL_COUNTRIES.find(c => c.name === country).cities.map((cityName) => (
@@ -240,7 +275,14 @@ export default function BasecityHome() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
               <div style={{ height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {balloon === 'idle' ? (
+                {hasCheckedInToday ? (
+                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ fontSize: '44px' }}>💥</div>
+                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#10B981', backgroundColor: '#E6F4EA', padding: '4px 12px', borderRadius: '20px' }}>
+                      Today's Check-in Complete!
+                    </span>
+                  </div>
+                ) : balloon === 'idle' ? (
                   <button 
                     onClick={handlePopBalloon} 
                     disabled={txLoading}
@@ -260,7 +302,7 @@ export default function BasecityHome() {
                   {wallet.slice(0, 6)}...{wallet.slice(-4)}
                 </span>
                 <button 
-                  onClick={() => { setWallet(''); setUsername(''); setBalloon('idle'); }}
+                  onClick={() => { setWallet(''); setUsername(''); setBalloon('idle'); setHasCheckedInToday(false); }}
                   style={{ display: 'block', margin: '6px auto 0 auto', padding: '4px 10px', border: '1px solid #FF3B30', borderRadius: '6px', backgroundColor: 'transparent', color: '#FF3B30', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}
                 >
                   Disconnect

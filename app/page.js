@@ -134,7 +134,7 @@ export default function BasecityHome() {
           animation: `fall ${c.duration}s linear ${c.delay}s forwards`
         }} />
       ))}
-{/* --- ÜLKE VE ŞEHİR SEÇİM ALANI BAŞLANGICI --- */}
+      
 <div style={{ margin: '20px 0', padding: '15px', background: '#ffffff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '300px' }}>
   
   {/* Ülke Seçimi */}

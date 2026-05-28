@@ -14,7 +14,7 @@ export default function BasecityHome() {
   const [country, setCountry] = useState('United States');
   const [city, setCity] = useState('');
 
-  const [balloon, setBalloon] = useState('idle'); // 'idle' veya 'popped'
+  const [balloon, setBalloon] = useState('idle'); // 'idle', 'popping', 'popped'
   const [confetti, setConfetti] = useState([]);
   const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
 
@@ -135,35 +135,40 @@ export default function BasecityHome() {
     }
   }
 
-  // ETKİLEYİCİ GÖRSEL ŞÖLEN KONFETİ FONKSİYONU (Yoğunluğu artırıldı ve farklı boyutlar eklendi)
+  // COŞKULU VE BÜYÜK GÖRSEL ŞÖLEN KONFETİSİ (120 adet rengarenk parıltı)
   function triggerConfetti() {
     const colors = [
-      '#0052FF', '#3B82F6', '#60A5FA', // Base Mavisi tonları (Ağırlıklı)
-      '#00D395', '#FFCC00', '#FF2D55', '#A855F7' // Diğer canlı şölen renkleri
+      '#0052FF', '#3B82F6', '#1D4ED8', '#60A5FA', // Yoğun Base Mavileri
+      '#00D395', '#34D399', // Canlı Yeşiller
+      '#FFCC00', '#FBBF24', // Altın Sarısı Parlamalar
+      '#FF2D55', '#F43F5E', // Enerjik Pembeler
+      '#A855F7', '#C084FC'  // Sihirli Morlar
     ];
     const tempConfetti = [];
     
-    // Konfeti sayısı daha etkileyici bir şölen için 35'ten 85'e çıkarıldı!
-    for (let i = 0; i < 85; i++) {
-      const size = 6 + Math.random() * 8; // Farklı boyutlarda konfetiler (6px - 14px)
+    for (let i = 0; i < 120; i++) {
+      const size = 6 + Math.random() * 12;
       tempConfetti.push({
         id: i,
         left: Math.random() * 100,
         color: colors[Math.floor(Math.random() * colors.length)],
-        delay: Math.random() * 0.6, // Dağınık yağma efekti
-        duration: 1.5 + Math.random() * 1.5, // Farklı hızlarda düşüş
+        delay: Math.random() * 0.8,
+        duration: 1.5 + Math.random() * 2.5,
         size: size,
-        shape: Math.random() > 0.4 ? '50%' : '0%' // Yuvarlak ve kare karışık
+        shape: Math.random() > 0.4 ? '50%' : '0%'
       });
     }
     setConfetti(tempConfetti);
-    setTimeout(() => setConfetti([]), 4000); // Şölen süresi uzatıldı
+    setTimeout(() => setConfetti([]), 4500);
   }
 
   async function handlePopBalloon() {
     if (balloon === 'popped' || txLoading || hasCheckedInToday) return;
 
     try {
+      // Önce patlama hazırlığı animasyonunu tetikle (sarsıntı için)
+      setBalloon('popping');
+      
       const txHash = await executeCheckIn(country); 
 
       const today = new Date().toISOString().split('T')[0];
@@ -176,6 +181,7 @@ export default function BasecityHome() {
         ).sort((a, b) => b.count - a.count)
       );
 
+      // Gerçek patlama anı ve coşkulu konfetiler
       setBalloon('popped');
       triggerConfetti();
 
@@ -184,38 +190,52 @@ export default function BasecityHome() {
       }, 200);
     } catch (err) {
       console.error(err);
+      setBalloon('idle'); // Hata durumunda balonu eski haline getir
       alert("Transaction rejected or failed.");
     }
   }
   return (
     <div style={{ padding: '20px 10px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
       
-      {/* ŞÖLEN KONFETİ YAPILARI */}
+      {/* ŞÖLEN KONFETİLERİ */}
       {confetti.map((c) => (
         <div key={c.id} style={{
           position: 'absolute', top: '-20px', left: `${c.left}%`,
           width: `${c.size}px`, height: `${c.size}px`, backgroundColor: c.color,
           borderRadius: c.shape,
-          opacity: 0.9, pointerEvents: 'none', zIndex: 999,
-          animation: `fallAndSpin ${c.duration}s linear ${c.delay}s forwards`
+          opacity: 0.95, pointerEvents: 'none', zIndex: 999,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          animation: `superFall ${c.duration}s cubic-bezier(0.25, 1, 0.5, 1) ${c.delay}s forwards`
         }} />
       ))}
 
-      {/* Gelişmiş Dönen, Sağa Sola Sallanan Konfeti ve Parlama Efektleri */}
+      {/* COŞKULU BALON VE PATLAMA ANİMASYONLARI */}
       <style>{`
-        @keyframes fallAndSpin {
+        @keyframes superFall {
           0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
-          50% { transform: translateY(50vh) rotate(180deg) translateX(15px); opacity: 0.9; }
-          100% { transform: translateY(105vh) rotate(360deg) translateX(-15px); opacity: 0; }
+          35% { transform: translateY(35vh) rotate(120deg) translateX(25px); }
+          70% { transform: translateY(70vh) rotate(240deg) translateX(-25px); opacity: 0.9; }
+          100% { transform: translateY(105vh) rotate(360deg) translateX(0); opacity: 0; }
         }
-        @keyframes basePulse {
-          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 82, 255, 0.5); }
-          70% { transform: scale(1.04); box-shadow: 0 0 20px 15px rgba(0, 82, 255, 0); }
-          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 82, 255, 0); }
+        @keyframes balloonFloat {
+          0% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-6px) scale(1.02); }
+          100% { transform: translateY(0) scale(1); }
         }
-        @keyframes particleExplosion {
-          0% { transform: scale(0.8); opacity: 1; }
-          100% { transform: scale(2); opacity: 0; }
+        @keyframes balloonPulse {
+          0% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0.6), 0 10px 20px rgba(0, 82, 255, 0.2); }
+          70% { box-shadow: 0 0 0 20px rgba(0, 82, 255, 0), 0 15px 30px rgba(0, 82, 255, 0.4); }
+          100% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0), 0 10px 20px rgba(0, 82, 255, 0.2); }
+        }
+        @keyframes balloonShake {
+          0%, 100% { transform: translateX(0) scale(1.1); }
+          20%, 60% { transform: translateX(-4px) scale(1.15); }
+          40%, 80% { transform: translateX(4px) scale(1.15); }
+        }
+        @keyframes megaExplosion {
+          0% { transform: scale(0.5); opacity: 1; filter: brightness(1.5); }
+          50% { transform: scale(1.6); opacity: 0.8; filter: brightness(2); }
+          100% { transform: scale(2.5); opacity: 0; filter: brightness(1); }
         }
       `}</style>
 
@@ -288,45 +308,50 @@ export default function BasecityHome() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-              <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
+              <div style={{ height: '190px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
+                
                 {hasCheckedInToday ? (
                   <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ fontSize: '50px', animation: 'particleExplosion 1s ease-out forwards' }}>💥</div>
-                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#10B981', backgroundColor: '#E6F4EA', padding: '5px 14px', borderRadius: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
+                    <div style={{ fontSize: '50px' }}>💥</div>
+                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#10B981', backgroundColor: '#E6F4EA', padding: '5px 14px', borderRadius: '20px' }}>
                       Today's Check-in Complete!
                     </span>
                   </div>
-                ) : balloon === 'idle' ? (
-                  /* MAVİ PARLAYAN DAİRESEL BASE BUTONU */
+                ) : balloon === 'idle' || balloon === 'popping' ? (
+                  
+                  /* DEVASA, PARLAYAN MAVİ BASE BALONU BUTONU */
                   <button 
                     onClick={handlePopBalloon} 
                     disabled={txLoading}
                     style={{ 
-                      width: '125px', 
-                      height: '125px', 
+                      width: '145px', 
+                      height: '145px', 
                       borderRadius: '50%', 
                       backgroundColor: '#0052FF', 
                       color: '#ffffff', 
-                      border: '4px solid #ffffff', 
+                      border: '5px solid #ffffff', 
                       display: 'flex', 
                       flexDirection: 'column', 
                       alignItems: 'center', 
                       justifyContent: 'center', 
-                      cursor: 'pointer', 
-                      boxShadow: '0 10px 25px rgba(0, 82, 255, 0.35)',
-                      animation: 'basePulse 2s infinite ease-in-out',
-                      transition: 'transform 0.2s'
+                      cursor: 'pointer',
+                      position: 'relative',
+                      boxShadow: '0 12px 30px rgba(0, 82, 255, 0.4)',
+                      animation: balloon === 'popping' ? 'balloonShake 0.4s infinite' : 'balloonFloat 3s infinite ease-in-out, balloonPulse 2s infinite ease-in-out',
+                      transition: 'transform 0.2s, background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                   >
-                    <span style={{ fontSize: '26px', fontWeight: '900', letterSpacing: '1px', color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.15)' }}>BASE</span>
-                    <span style={{ fontSize: '9px', fontWeight: '700', textTransform: 'uppercase', marginTop: '2px', color: '#DBEAFE', opacity: 0.9 }}>POP IT!</span>
+                    {/* Balon Düğümü (Altındaki minik üçgen çıkıntı) */}
+                    <div style={{ position: 'absolute', bottom: '-10px', left: '50%', transform: 'translateX(-50%)', width: '0', height: '0', borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '10px solid #0052FF' }} />
+                    
+                    <span style={{ fontSize: '30px', fontWeight: '900', letterSpacing: '1.5px', color: '#ffffff', textShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>BASE</span>
+                    <span style={{ fontSize: '10px', fontWeight: '800', marginTop: '3px', color: '#93C5FD', textTransform: 'uppercase', letterSpacing: '1px' }}>POP IT!</span>
                   </button>
+
                 ) : (
-                  /* PATLAMA ANI GÖRSEL ŞÖLENİ */
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'particleExplosion 0.6s ease-out forwards' }}>
-                    <div style={{ fontSize: '64px' }}>💥</div>
+                  /* DEVASA COŞKULU PATLAMA ANI GÖRSELİ */
+                  <div style={{ fontSize: '80px', animation: 'megaExplosion 0.5s ease-out forwards', position: 'absolute' }}>
+                    💥
                   </div>
                 )}
               </div>
@@ -348,6 +373,7 @@ export default function BasecityHome() {
 
         </div>
 
+        {/* LİDERLİK TABLOSU */}
         <div style={{ marginTop: '10px', paddingTop: '12px', borderTop: '1px solid #EFEFEF' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
             <span style={{ fontSize: '14px' }}>🏆</span>
@@ -356,7 +382,7 @@ export default function BasecityHome() {
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {leaderboard.map((item, index) => (
-              <div key={item.name} style={{ display: 'flex', alignItems: 'center', justify: 'space-between', padding: '6px 10px', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid #F1F3F5' }}>
+              <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid #F1F3F5' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '13px' }}>{index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}</span>
                   <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>{item.flag} {item.name}</span>

@@ -238,6 +238,50 @@ export default function BasecityHome() {
         </div>
 
       </div>
+            {/* --- LİDERLİK TABLOSU (LEADERBOARD) BAŞLANGICI --- */}
+      <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', borderRadius: '24px', padding: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eef0f2', zIndex: 10, marginTop: '20px', display: 'flex', flexDirection: 'column' }}>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
+          <span style={{ fontSize: '20px' }}>🏆</span>
+          <h2 style={{ fontSize: '18px', color: '#111827', fontWeight: '750', margin: '0' }}>Top Check-In Cities</h2>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {[
+            { rank: 1, country: 'Türkiye', city: 'İstanbul', count: 142, flag: '🇹🇷' },
+            { rank: 2, country: 'United States', city: 'New York', count: 98, flag: '🇺🇸' },
+            { rank: 3, country: 'United Kingdom', city: 'London', count: 64, flag: '🇬🇧' },
+            { rank: 4, country: 'Türkiye', city: 'İzmir', count: 45, flag: '🇹🇷' },
+            { rank: 5, country: 'Germany', city: 'Berlin', count: 21, flag: '🇩🇪' },
+          ].map((item) => (
+            <div key={item.rank} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', backgroundColor: item.rank <= 3 ? '#F0F5FF' : '#F9FAFB', borderRadius: '12px', border: item.rank <= 3 ? '1px solid #D6E4FF' : '1px solid #F3F4F6' }}>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '800', color: item.rank === 1 ? '#0052FF' : '#4B5563', width: '20px' }}>
+                  {item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : item.rank === 3 ? '🥉' : `#${item.rank}`}
+                </span>
+                
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#1F2937' }}>
+                    {item.flag} {item.city}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: '500' }}>
+                    {item.country}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: item.rank <= 3 ? '#0052FF' : '#E5E7EB', color: item.rank <= 3 ? '#ffffff' : '#4B5563', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '700' }}>
+                {item.count} POPs
+              </div>
+
+            </div>
+          ))}
+        </div>
+
+      </div>
+      {/* --- LİDERLİK TABLOSU (LEADERBOARD) BİTİŞİ --- */}
+
     </div>
   );
 }

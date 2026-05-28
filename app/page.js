@@ -134,6 +134,47 @@ export default function BasecityHome() {
           animation: `fall ${c.duration}s linear ${c.delay}s forwards`
         }} />
       ))}
+{/* --- ÜLKE VE ŞEHİR SEÇİM ALANI BAŞLANGICI --- */}
+<div style={{ margin: '20px 0', padding: '15px', background: '#ffffff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '300px' }}>
+  
+  {/* Ülke Seçimi */}
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+    <label style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>Ülke Seçin:</label>
+    <select 
+      value={country}
+      onChange={(e) => handleCountryChange(e.target.value)}
+      style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px', outline: 'none' }}
+    >
+      <option value="">-- Ülke Seçiniz --</option>
+      {ALL_COUNTRIES.map((c) => (
+        <option key={c.code} value={c.name}>
+          {c.name}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  {/* Şehir Seçimi (Sadece seçilen ülkenin şehirleri varsa görünür) */}
+  {ALL_COUNTRIES.find(c => c.name === country)?.cities && (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      <label style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>Şehir Seçin:</label>
+      <select 
+        value={city}
+        onChange={(e) => setCity(e.target.value)}
+        style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px', outline: 'none' }}
+      >
+        <option value="">-- Şehir Seçiniz --</option>
+        {ALL_COUNTRIES.find(c => c.name === country).cities.map((cityName) => (
+          <option key={cityName} value={cityName}>
+            {cityName}
+          </option>
+        ))}
+      </select>
+    </div>
+  )}
+
+</div>
+{/* --- ÜLKE VE ŞEHİR SEÇİM ALANI BİTİŞİ --- */}
 
       <style>{`
         @keyframes fall {

@@ -12,8 +12,8 @@ export function useCheckInTx() {
         throw new Error("Warpcast wallet provider not found.");
       }
 
-      // YENİ ALDIĞINIZ KONTRAT ADRESİNİ BURAYA YAZIN
-      const contractAddress = "0xBURAYA_YENI_KONTRAT_ADRESINIZI_YAZIN"; 
+      // Yeni oluşturduğunuz 0.00001 ETH'lik akıllı sözleşme adresiniz
+      const contractAddress = "0xdA9089321C252dA5B0ed2F51d175703dc45E042f"; 
 
       const accounts = await provider.request({ method: 'eth_accounts' });
       const userAddress = accounts[0] || accounts;
@@ -29,7 +29,7 @@ export function useCheckInTx() {
         params: [{
           from: userAddress,
           to: contractAddress,
-          value: ethAmountInHex, // Güncellenen miktar
+          value: ethAmountInHex, // Güncellenen düşük miktar
           data: checkInFunctionSelector 
         }]
       });

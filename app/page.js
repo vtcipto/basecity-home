@@ -36,29 +36,21 @@ export default function BasecityHome() {
     setCity('');
   };
 
-  // UYGULAMAYI WARPCAST ÜZERİNDE PAYLAŞTIRAN YENİ FONKSİYON (Cast Intent)
-      const handleShareApp = async () => {
-    const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://vercel.app';
+  // FARCASTER FRAME V2 STANDARTLARINA UYGUN RESMİ PAYLAŞIM FONKSİYONU
+  const handleShareApp = () => {
+    // Projenizi Vercel'e yüklediğinizde canlı domain adresinizi buraya yazın:
+    const appUrl = 'https://vercel.app'; 
+    
     const shareText = `I just checked-in to ${country}${city ? ` (${city})` : ''} on Basecity Home! 🎈✨ Come pop the giant BASE balloon and support your country on-chain! 🏆🔵`;
     const warpcastIntentUrl = `https://warpcast.com{encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(appUrl)}`;
     
-    try {
-      // Farcaster Mini App resmi SDK yönlendirmesi
-      if (typeof window !== 'undefined' && sdk?.actions) {
-        await sdk.actions.openUrl(warpcastIntentUrl);
-      } else if (typeof window !== 'undefined') {
-        window.open(warpcastIntentUrl, '_blank');
-      }
-    } catch (error) {
-      console.error("Farcaster share failed, trying fallback:", error);
-      // Eğer SDK hata verirse zorunlu tarayıcı tetiklemesi (Fallback)
-      if (typeof window !== 'undefined') {
-        window.location.href = warpcastIntentUrl;
-      }
+    // Farcaster in-app (Warpcast içi) tarayıcı protokol kontrolü
+    if (typeof window !== 'undefined' && sdk?.actions?.openUrl) {
+      sdk.actions.openUrl(warpcastIntentUrl); // Warpcast içinde çalışan resmi komut
+    } else if (typeof window !== 'undefined') {
+      window.open(warpcastIntentUrl, '_blank'); // Normal web tarayıcıları için yedek plan
     }
   };
-
-
 
   const fetchRealContractData = async () => {
     try {
@@ -176,7 +168,7 @@ export default function BasecityHome() {
   return (
     <div style={{ padding: '20px 10px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
       
-      {/* SLOW-MOTION "BASE" PARÇACIKLARI */}
+      {/* SLOW-MOTION "BASE" PARÇACIKLI GÖRSEL ŞÖLEN */}
       {baseFragments.map((f) => (
         <div key={f.id} style={{
           position: 'absolute', top: '45%', left: '50%',
@@ -220,7 +212,7 @@ export default function BasecityHome() {
         }
       `}</style>
 
-      <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', minHeight: '72vh', borderRadius: '24px', padding: '25px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #eef0f2', zIndex: 10 }}>
+      <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', minHeight: '70vh', borderRadius: '24px', padding: '25px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #eef0f2', zIndex: 10 }}>
         
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: '32px', color: '#0052FF', fontWeight: '800', margin: '0' }}>Basecity Home</h1>
@@ -287,48 +279,48 @@ export default function BasecityHome() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-              <div style={{ height: '170px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
+              <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
                 
                 {balloon === 'idle' || balloon === 'popping' ? (
                   <button 
                     onClick={handlePopBalloon} 
                     disabled={txLoading}
                     style={{ 
-                      width: '135px', height: '135px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#ffffff', border: '5px solid #ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative',
+                      width: '140px', height: '140px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#ffffff', border: '5px solid #ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative',
                       boxShadow: '0 12px 30px rgba(0, 82, 255, 0.4)',
                       animation: balloon === 'popping' ? 'balloonShake 0.4s infinite' : 'balloonFloat 3s infinite ease-in-out, balloonPulse 2s infinite ease-in-out',
                       transition: 'transform 0.2s'
                     }}
                   >
                     <div style={{ position: 'absolute', bottom: '-10px', left: '50%', transform: 'translateX(-50%)', width: '0', height: '0', borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '10px solid #0052FF' }} />
-                    <span style={{ fontSize: '28px', fontWeight: '900', letterSpacing: '1.5px', color: '#ffffff', textShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>BASE</span>
-                    <span style={{ fontSize: '9px', fontWeight: '800', marginTop: '3px', color: '#93C5FD', textTransform: 'uppercase' }}>POP IT!</span>
+                    <span style={{ fontSize: '30px', fontWeight: '900', letterSpacing: '1.5px', color: '#ffffff', textShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>BASE</span>
+                    <span style={{ fontSize: '10px', fontWeight: '800', marginTop: '3px', color: '#93C5FD', textTransform: 'uppercase', letterSpacing: '1px' }}>POP IT!</span>
                   </button>
                 ) : (
                   <div style={{ 
-                    width: '135px', height: '135px', borderRadius: '50%', backgroundColor: '#0052FF', border: '5px solid #ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: '140px', height: '140px', borderRadius: '50%', backgroundColor: '#0052FF', border: '5px solid #ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     animation: 'smoothFadeOut 0.7s ease-in forwards'
                   }}>
-                    <span style={{ fontSize: '28px', fontWeight: '900', color: '#ffffff' }}>BASE</span>
+                    <span style={{ fontSize: '30px', fontWeight: '900', color: '#ffffff' }}>BASE</span>
                   </div>
                 )}
               </div>
               
-              {/* ŞIK PAYLAŞIM VE DAVET ETME BUTONU (SHARE FEATURE) */}
+              {/* SDK GÜVENLİĞİNE UYGUN RESMİ BUTON YAPISI */}
               <button 
                 onClick={handleShareApp}
                 style={{
-                  width: '100%', padding: '10px 14px', borderRadius: '12px',
+                  width: '100%', padding: '11px 14px', borderRadius: '12px',
                   backgroundColor: 'transparent', border: '2px solid #0052FF',
                   color: '#0052FF', fontSize: '13px', fontWeight: '750',
                   cursor: 'pointer', display: 'flex', alignItems: 'center',
                   justifyContent: 'center', gap: '8px', transition: 'all 0.2s',
-                  boxShadow: '0 2px 6px rgba(0, 82, 255, 0.05)'
+                  boxShadow: '0 2px 6px rgba(0, 82, 255, 0.04)'
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#0052FF'; e.currentTarget.style.color = '#fff'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#0052FF'; }}
               >
-                <span>📢</span> Share App & Invite Friends
+                <span>📢</span> Share App & Invite Frens
               </button>
 
               <button 
@@ -342,8 +334,8 @@ export default function BasecityHome() {
 
         </div>
 
-        {/* LİDERLİK TABLOSU */}
-        <div style={{ marginTop: '8px', paddingTop: '12px', borderTop: '1px solid #EFEFEF' }}>
+        {/* REKABET LIDERLIK TABLOSU */}
+        <div style={{ marginTop: '10px', paddingTop: '12px', borderTop: '1px solid #EFEFEF' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
             <span style={{ fontSize: '14px' }}>🏆</span>
             <span style={{ fontSize: '11px', color: '#111827', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top 3 Leaderboard</span>

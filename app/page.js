@@ -16,10 +16,49 @@ export default function BasecityHome() {
 
   const [balloon, setBalloon] = useState('idle');
   const [confetti, setConfetti] = useState([]);
+  
+  // Akıllı sözleşmeden (Smart Contract) gelecek gerçek ülke verilerini tutan durum (state)
+  const [leaderboard, setLeaderboard] = useState([
+    { name: 'United States', count: 0, flag: '🇺🇸', code: 'US' },
+    { name: 'Türkiye', count: 0, flag: '🇹🇷', code: 'TR' },
+    { name: 'United Kingdom', count: 0, flag: '🇬🇧', code: 'GB' }
+  ]);
 
   const handleCountryChange = (countryName) => {
     setCountry(countryName);
     setCity(''); // Ülke değişince eski seçili şehri temizler
+  };
+
+  // Kontrattan (Smart Contract) gerçek check-in sayılarını çeken fonksiyon
+  const fetchRealContractData = async () => {
+    try {
+      if (typeof getTotalCheckIns === 'function') {
+        // Kontrattaki her ülke için güncel onaylanmış tx verilerini döngüyle çekiyoruz
+        const updatedLeaderboard = await Promise.all(
+          ALL_COUNTRIES.map(async (c) => {
+            try {
+              const count = await getTotalCheckIns(c.name);
+              return { 
+                name: c.name, 
+                count: Number(count) || 0, 
+                flag: c.code === 'TR' ? '🇹🇷' : c.code === 'US' ? '🇺🇸' : c.code === 'GB' ? '🇬🇧' : c.code === 'DE' ? '🇩🇪' : c.code === 'FR' ? '🇫🇷' : c.code === 'JP' ? '🇯🇵' : c.code === 'BR' ? '🇧🇷' : c.code === 'CA' ? '🇨🇦' : '🏳️'
+              };
+            } catch (e) {
+              return { name: c.name, count: 0, flag: '🏳️' };
+            }
+          })
+        );
+
+        // Sayıları en yüksekten en düşüğe sıralayıp sadece İLK 3 ülkeyi filtreliyoruz
+        const sortedTop3 = updatedLeaderboard
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 3);
+
+        setLeaderboard(sortedTop3);
+      }
+    } catch (err) {
+      console.error("Sözleşmeden gerçek veriler alınamadı:", err);
+    }
   };
 
   useEffect(() => {
@@ -33,7 +72,15 @@ export default function BasecityHome() {
       }
     }
     initFarcaster();
+    fetchRealContractData(); // Sayfa ilk açıldığında gerçek verileri getir
   }, []);
+
+  // Kullanıcı yeni bir check-in işlemini onayladığında listeyi anlık olarak tazele
+  useEffect(() => {
+    if (balloon === 'popped') {
+      fetchRealContractData();
+    }
+  }, [balloon]);
 
   async function handleConnect() {
     if (loading) return;
@@ -125,7 +172,6 @@ export default function BasecityHome() {
         }
       `}</style>
 
-      {/* TEK ANA KART YAPISI - Asla taşma yapmaz */}
       <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', minHeight: '75vh', borderRadius: '24px', padding: '25px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #eef0f2', zIndex: 10 }}>
         
         <div style={{ textAlign: 'center' }}>
@@ -225,25 +271,23 @@ export default function BasecityHome() {
 
         </div>
 
-        {/* KART İÇİ KOMPAKT İLK 3 ŞEHİR LİSTESİ */}
+        {/* KART İÇİ GERÇEK ZAMANLI İLK 3 ÜLKE WIDGET'I */}
         <div style={{ marginTop: '10px', paddingTop: '12px', borderTop: '1px solid #EFEFEF' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
             <span style={{ fontSize: '14px' }}>🏆</span>
-            <span style={{ fontSize: '12px', color: '#111827', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top 3 Cities</span>
+            <span style={{ fontSize: '11px', color: '#111827', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top 3 Onchain Countries</span>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {[
-              { rank: '🥇', city: 'İstanbul', count: 142, flag: '🇹🇷' },
-              { rank: '🥈', city: 'New York', count: 98, flag: '🇺🇸' },
-              { rank: '🥉', city: 'London', count: 64, flag: '🇬🇧' }
-            ].map((item) => (
-              <div key={item.city} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid #F1F3F5' }}>
+            {leaderboard.map((item, index) => (
+              <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid #F1F3F5' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '13px' }}>{item.rank}</span>
-                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>{item.flag} {item.city}</span>
+                  <span style={{ fontSize: '13px' }}>{index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}</span>
+                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>{item.flag} {item.name}</span>
                 </div>
-                <span style={{ fontSize: '11px', fontWeight: '700', color: '#0052FF', backgroundColor: '#E6EFFF', padding: '2px 8px', borderRadius: '10px' }}>{item.count} POPs</span>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: '#0052FF', backgroundColor: '#E6EFFF', padding: '2px 8px', borderRadius: '10px' }}>
+                  {item.count} POPs
+                </span>
               </div>
             ))}
           </div>

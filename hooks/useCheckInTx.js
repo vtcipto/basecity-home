@@ -18,9 +18,6 @@ export function useCheckInTx() {
   const contractAddress = "0xdA9089321C252dA5B0ed2F51d175703dc45E042f";
 
   const executeCheckIn = async (countryName) => {
-    // --- GÜVENLİK KİLİDİ: Eğer zaten bir işlem onay bekliyorsa yenisini başlatma ---
-    if (txLoading) return null;
-    
     setTxLoading(true);
     try {
       const provider = sdk.wallet?.ethProvider;
@@ -28,15 +25,16 @@ export function useCheckInTx() {
         throw new Error("Warpcast wallet provider not found.");
       }
 
+      // Bağlı hesabı güvenli bir şekilde al
       const accounts = await provider.request({ method: 'eth_accounts' });
-      const userAddress = accounts || accounts;
+      const userAddress = accounts[0] || accounts;
 
       const transactionData = encodeCheckInData(countryName);
       const ethAmountInHex = "0x9184e72a000"; // 0.00001 ETH
 
-      // Cüzdan isteğini gönder
+      // İstek gönderilirken cüzdan standartlarını pürüzsüz tetikle
       const txHash = await provider.request({
-        method: "0x" + "eth_sendTransaction".replace("0x", ""), // EIP-1193 temiz çağırma metodu
+        method: "eth_sendTransaction",
         params: [{
           from: userAddress,
           to: contractAddress,
@@ -49,7 +47,9 @@ export function useCheckInTx() {
       return txHash;
 
     } catch (error) {
-      setTxLoading(false); // Kullanıcı reddederse kilidi kaldır
+      setTxLoading(false);
+      // Eğer kullanıcı cüzdandan manuel çarpıya basıp iptal ettiyse sessizce bitir
+      console.warn("User or wallet closed the transaction:", error);
       throw error;
     }
   };

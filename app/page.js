@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
 import { useCheckInTx } from '../hooks/useCheckInTx';
+import { ALL_COUNTRIES } from '../constants/countriesData';
 
 export default function BasecityHome() {
   const { executeCheckIn, getTotalCheckIns, txLoading } = useCheckInTx();
@@ -11,8 +12,14 @@ export default function BasecityHome() {
   const [pfpUrl, setPfpUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [country, setCountry] = useState('United States');
+  const [city, setCity] = useState('');
+
   const [balloon, setBalloon] = useState('idle');
   const [confetti, setConfetti] = useState([]);
+  const handleCountryChange = (countryName) => {
+  setCountry(countryName);
+  setCity(''); // Ülke değişince eski seçili şehri temizler
+};
 
   useEffect(() => {
     async function initFarcaster() {

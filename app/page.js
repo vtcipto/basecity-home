@@ -19,7 +19,7 @@ export default function BasecityHome() {
 
   const handleCountryChange = (countryName) => {
     setCountry(countryName);
-    setCity('');
+    setCity(''); // Ülke değişince eski seçili şehri temizler
   };
 
   useEffect(() => {
@@ -106,10 +106,8 @@ export default function BasecityHome() {
     }
   }
   return (
+    <div style={{ padding: '20px 10px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', overflowX: 'hidden', position: 'relative' }}>
       
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
-      
-      {/* Konfeti Efekti */}
       {confetti.map((c) => (
         <div key={c.id} style={{
           position: 'absolute', top: '-10px', left: `${c.left}%`,
@@ -127,7 +125,6 @@ export default function BasecityHome() {
         }
       `}</style>
 
-      {/* TEK ANA KART - Ekranın bölünmesini engelleyen ana taşıyıcı */}
       <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', minHeight: '70vh', borderRadius: '24px', padding: '30px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #eef0f2', zIndex: 10 }}>
         
         <div style={{ textAlign: 'center' }}>
@@ -145,13 +142,10 @@ export default function BasecityHome() {
           </div>
         )}
 
-        {/* ORTA İÇERİK ALANI */}
         <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center', margin: '15px 0', gap: '20px' }}>
           
-          {/* ÜLKE VE ŞEHİR SEÇİM ALANI - KARTIN İÇİNE ENTEGRE EDİLDİ */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
             
-            {/* Ülke Seçimi */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={{ fontSize: '12px', fontWeight: '700', color: '#666', textTransform: 'uppercase' }}>Select Your Country:</label>
               <select 
@@ -168,7 +162,6 @@ export default function BasecityHome() {
               </select>
             </div>
 
-            {/* Şehir Seçimi (Sadece seçilen ülkenin şehirleri varsa şıkça altında açılır) */}
             {ALL_COUNTRIES.find(c => c.name === country)?.cities && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#0052FF', textTransform: 'uppercase' }}>Select Your City:</label>
@@ -187,8 +180,6 @@ export default function BasecityHome() {
               </div>
             )}
           </div>
-
-          {/* AKŞIYON BUTONLARI */}
           {!wallet ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginTop: '15px' }}>
               <button 
@@ -238,48 +229,51 @@ export default function BasecityHome() {
         </div>
 
       </div>
-            {/* --- LİDERLİK TABLOSU (LEADERBOARD) BAŞLANGICI --- */}
-      <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', borderRadius: '24px', padding: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eef0f2', zIndex: 10, marginTop: '20px', display: 'flex', flexDirection: 'column' }}>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
-          <span style={{ fontSize: '20px' }}>🏆</span>
-          <h2 style={{ fontSize: '18px', color: '#111827', fontWeight: '750', margin: '0' }}>Top Check-In Cities</h2>
-        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {[
-            { rank: 1, country: 'Türkiye', city: 'İstanbul', count: 142, flag: '🇹🇷' },
-            { rank: 2, country: 'United States', city: 'New York', count: 98, flag: '🇺🇸' },
-            { rank: 3, country: 'United Kingdom', city: 'London', count: 64, flag: '🇬🇧' },
-            { rank: 4, country: 'Türkiye', city: 'İzmir', count: 45, flag: '🇹🇷' },
-            { rank: 5, country: 'Germany', city: 'Berlin', count: 21, flag: '🇩🇪' },
-          ].map((item) => (
-            <div key={item.rank} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', backgroundColor: item.rank <= 3 ? '#F0F5FF' : '#F9FAFB', borderRadius: '12px', border: item.rank <= 3 ? '1px solid #D6E4FF' : '1px solid #F3F4F6' }}>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '14px', fontWeight: '800', color: item.rank === 1 ? '#0052FF' : '#4B5563', width: '20px' }}>
-                  {item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : item.rank === 3 ? '🥉' : `#${item.rank}`}
-                </span>
+      {balloon === 'popped' && (
+        <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', borderRadius: '24px', padding: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eef0f2', zIndex: 10, marginTop: '20px', display: 'flex', flexDirection: 'column' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
+            <span style={{ fontSize: '20px' }}>🏆</span>
+            <h2 style={{ fontSize: '18px', color: '#111827', fontWeight: '750', margin: '0' }}>Top Check-In Cities</h2>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {[
+              { rank: 1, country: 'Türkiye', city: 'İstanbul', count: 142, flag: '🇹🇷' },
+              { rank: 2, country: 'United States', city: 'New York', count: 98, flag: '🇺🇸' },
+              { rank: 3, country: 'United Kingdom', city: 'London', count: 64, flag: '🇬🇧' },
+              { rank: 4, country: 'Türkiye', city: 'İzmir', count: 45, flag: '🇹🇷' },
+              { rank: 5, country: 'Germany', city: 'Berlin', count: 21, flag: '🇩🇪' },
+            ].map((item) => (
+              <div key={item.rank} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', backgroundColor: item.rank <= 3 ? '#F0F5FF' : '#F9FAFB', borderRadius: '12px', border: item.rank <= 3 ? '1px solid #D6E4FF' : '1px solid #F3F4F6' }}>
                 
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#1F2937' }}>
-                    {item.flag} {item.city}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: '800', color: item.rank === 1 ? '#0052FF' : '#4B5563', width: '20px' }}>
+                    {item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : item.rank === 3 ? '🥉' : `#${item.rank}`}
                   </span>
-                  <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: '500' }}>
-                    {item.country}
-                  </span>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#1F2937' }}>
+                      {item.flag} {item.city}
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: '500' }}>
+                      {item.country}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <div style={{ backgroundColor: item.rank <= 3 ? '#0052FF' : '#E5E7EB', color: item.rank <= 3 ? '#ffffff' : '#4B5563', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '700' }}>
-                {item.count} POPs
-              </div>
+                <div style={{ backgroundColor: item.rank <= 3 ? '#0052FF' : '#E5E7EB', color: item.rank <= 3 ? '#ffffff' : '#4B5563', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '700' }}>
+                  {item.count} POPs
+                </div>
 
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
+
         </div>
+      )}
 
-      </div>
     </div>
   );
 }

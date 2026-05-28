@@ -16,41 +16,37 @@ export default function BasecityHome() {
 
   const [balloon, setBalloon] = useState('idle'); // 'idle', 'popping', 'popped'
   const [confetti, setConfetti] = useState([]);
-  const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
 
-  const [leaderboard, setLeaderboard] = useState([
-    { name: 'United States', count: 0, flag: '🇺🇸', code: 'US' },
-    { name: 'Türkiye', count: 0, flag: '🇹🇷', code: 'TR' },
-    { name: 'United Kingdom', count: 0, flag: '🇬🇧', code: 'GB' }
-  ]);
+  // Liderlik tablosunun başlangıç verilerini tarayıcı hafızasından güvenli bir şekilde yüklüyoruz
+  const [leaderboard, setLeaderboard] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedLeaderboard = localStorage.getItem('basecity_leaderboard');
+      if (savedLeaderboard) {
+        try {
+          return JSON.parse(savedLeaderboard);
+        } catch (e) {
+          console.error("Hafızadan liderlik tablosu okunamadı:", e);
+        }
+      }
+    }
+    return [
+      { name: 'United States', count: 12, flag: '🇺🇸', code: 'US' },
+      { name: 'Türkiye', count: 8, flag: '🇹🇷', code: 'TR' },
+      { name: 'United Kingdom', count: 5, flag: '🇬🇧', code: 'GB' }
+    ];
+  });
 
   const handleCountryChange = (countryName) => {
     setCountry(countryName);
     setCity('');
   };
 
-  const checkDailyLimit = (userWallet) => {
-    if (!userWallet) return;
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const lastCheckIn = localStorage.getItem(`checkin_${userWallet.toLowerCase()}`);
-      
-      if (lastCheckIn === today) {
-        setHasCheckedInToday(true);
-        setBalloon('popped');
-      } else {
-        setHasCheckedInToday(false);
-        setBalloon('idle');
-      }
-    } catch (e) {
-      console.error("Localstorage okuma hatası:", e);
-    }
-  };
-
   const fetchRealContractData = async () => {
     try {
+      let updatedLeaderboard = [];
+      
       if (typeof getTotalCheckIns === 'function') {
-        const updatedLeaderboard = await Promise.all(
+        updatedLeaderboard = await Promise.all(
           ALL_COUNTRIES.map(async (c) => {
             try {
               const count = await getTotalCheckIns(c.name);
@@ -60,19 +56,30 @@ export default function BasecityHome() {
                 flag: c.code === 'TR' ? '🇹🇷' : c.code === 'US' ? '🇺🇸' : c.code === 'GB' ? '🇬🇧' : c.code === 'DE' ? '🇩🇪' : c.code === 'FR' ? '🇫🇷' : c.code === 'JP' ? '🇯🇵' : c.code === 'BR' ? '🇧🇷' : c.code === 'CA' ? '🇨🇦' : '🏳️'
               };
             } catch (e) {
-              return { name: c.name, count: 0, flag: '🏳️' };
+              return null;
             }
           })
         );
-
-        const sortedTop3 = updatedLeaderboard
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 3);
-
-        setLeaderboard(sortedTop3);
+        updatedLeaderboard = updatedLeaderboard.filter(Boolean);
       }
+
+      if (updatedLeaderboard.length === 0) {
+        const saved = localStorage.getItem('basecity_leaderboard');
+        if (saved) {
+          updatedLeaderboard = JSON.parse(saved);
+        } else {
+          return;
+        }
+      }
+
+      const sortedTop3 = updatedLeaderboard
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3);
+
+      setLeaderboard(sortedTop3);
+      localStorage.setItem('basecity_leaderboard', JSON.stringify(sortedTop3));
     } catch (err) {
-      console.error("Sözleşmeden veri alınamadı:", err);
+      console.error("Liderlik tablosu güncellenirken hata oluştu:", err);
     }
   };
 
@@ -90,12 +97,6 @@ export default function BasecityHome() {
     fetchRealContractData();
   }, []);
 
-  useEffect(() => {
-    if (wallet) {
-      checkDailyLimit(wallet);
-    }
-  }, [wallet]);
-
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
@@ -112,7 +113,7 @@ export default function BasecityHome() {
       });
 
       if (accounts && accounts.length > 0) {
-        const realUserAddress = accounts[0] || accounts;
+        const realUserAddress = accounts || accounts;
         const isAuthorized = window.confirm(
           `Connect Basecity Home with your wallet?\n\nAddress:\n${realUserAddress}`
         );
@@ -135,17 +136,9 @@ export default function BasecityHome() {
     }
   }
 
-  // COŞKULU VE BÜYÜK GÖRSEL ŞÖLEN KONFETİSİ (120 adet rengarenk parıltı)
   function triggerConfetti() {
-    const colors = [
-      '#0052FF', '#3B82F6', '#1D4ED8', '#60A5FA', // Yoğun Base Mavileri
-      '#00D395', '#34D399', // Canlı Yeşiller
-      '#FFCC00', '#FBBF24', // Altın Sarısı Parlamalar
-      '#FF2D55', '#F43F5E', // Enerjik Pembeler
-      '#A855F7', '#C084FC'  // Sihirli Morlar
-    ];
+    const colors = ['#0052FF', '#3B82F6', '#1D4ED8', '#60A5FA', '#00D395', '#FFCC00', '#FF2D55', '#A855F7'];
     const tempConfetti = [];
-    
     for (let i = 0; i < 120; i++) {
       const size = 6 + Math.random() * 12;
       tempConfetti.push({
@@ -163,41 +156,52 @@ export default function BasecityHome() {
   }
 
   async function handlePopBalloon() {
-    if (balloon === 'popped' || txLoading || hasCheckedInToday) return;
+    if (balloon === 'popping' || txLoading) return;
 
     try {
-      // Önce patlama hazırlığı animasyonunu tetikle (sarsıntı için)
       setBalloon('popping');
-      
       const txHash = await executeCheckIn(country); 
 
-      const today = new Date().toISOString().split('T')[0];
-      localStorage.setItem(`checkin_${wallet.toLowerCase()}`, today);
-      setHasCheckedInToday(true);
+      // TEST MODU: Sayıyı anlık artırıp yerel hafızaya sınırsızca yazıyoruz
+      setLeaderboard(prevList => {
+        const exists = prevList.some(item => item.name === country);
+        let newList = [];
+        
+        if (exists) {
+          newList = prevList.map(item => 
+            item.name === country ? { ...item, count: item.count + 1 } : item
+          );
+        } else {
+          const countryObj = ALL_COUNTRIES.find(c => c.name === country);
+          const flag = countryObj?.code === 'TR' ? '🇹🇷' : countryObj?.code === 'US' ? '🇺🇸' : countryObj?.code === 'GB' ? '🇬🇧' : '🏳️';
+          newList = [...prevList, { name: country, count: 1, flag: flag }];
+        }
+        
+        const sorted = newList.sort((a, b) => b.count - a.count).slice(0, 3);
+        localStorage.setItem('basecity_leaderboard', JSON.stringify(sorted));
+        return sorted;
+      });
 
-      setLeaderboard(prevList => 
-        prevList.map(item => 
-          item.name === country ? { ...item, count: item.count + 1 } : item
-        ).sort((a, b) => b.count - a.count)
-      );
-
-      // Gerçek patlama anı ve coşkulu konfetiler
       setBalloon('popped');
       triggerConfetti();
+
+      // TEST MODU: 4 saniye sonra balonu tekrar şişiriyoruz ki arka arkaya test edebilesiniz!
+      setTimeout(() => {
+        setBalloon('idle');
+      }, 4000);
 
       setTimeout(() => {
         alert(`Success! Checked-in to ${country} 🚀\nTx: ${txHash}`);
       }, 200);
     } catch (err) {
       console.error(err);
-      setBalloon('idle'); // Hata durumunda balonu eski haline getir
+      setBalloon('idle');
       alert("Transaction rejected or failed.");
     }
   }
   return (
     <div style={{ padding: '20px 10px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
       
-      {/* ŞÖLEN KONFETİLERİ */}
       {confetti.map((c) => (
         <div key={c.id} style={{
           position: 'absolute', top: '-20px', left: `${c.left}%`,
@@ -205,11 +209,10 @@ export default function BasecityHome() {
           borderRadius: c.shape,
           opacity: 0.95, pointerEvents: 'none', zIndex: 999,
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          animation: `superFall ${c.duration}s cubic-bezier(0.25, 1, 0.5, 1) ${c.delay}s forwards`
+          animation: `superFall ${c.duration}s linear ${c.delay}s forwards`
         }} />
       ))}
 
-      {/* COŞKULU BALON VE PATLAMA ANİMASYONLARI */}
       <style>{`
         @keyframes superFall {
           0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
@@ -264,9 +267,8 @@ export default function BasecityHome() {
               <label style={{ fontSize: '11px', fontWeight: '700', color: '#666', textTransform: 'uppercase' }}>Select Your Country:</label>
               <select 
                 value={country}
-                disabled={hasCheckedInToday}
                 onChange={(e) => handleCountryChange(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '2px solid #e2e8f0', fontSize: '14px', outline: 'none', backgroundColor: hasCheckedInToday ? '#f3f4f6' : '#fff', fontWeight: '500', color: '#333' }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '2px solid #e2e8f0', fontSize: '14px', outline: 'none', backgroundColor: '#fff', fontWeight: '500', color: '#333' }}
               >
                 <option value="">-- Ülke Seçiniz --</option>
                 {ALL_COUNTRIES.map((c) => (
@@ -282,9 +284,8 @@ export default function BasecityHome() {
                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#0052FF', textTransform: 'uppercase' }}>Select Your City:</label>
                 <select 
                   value={city}
-                  disabled={hasCheckedInToday}
                   onChange={(e) => setCity(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '2px solid #0052FF', fontSize: '14px', outline: 'none', backgroundColor: hasCheckedInToday ? '#f3f4f6' : '#fff', fontWeight: '500', color: '#333' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '2px solid #0052FF', fontSize: '14px', outline: 'none', backgroundColor: '#fff', fontWeight: '500', color: '#333' }}
                 >
                   <option value="">-- Şehir Seçiniz --</option>
                   {ALL_COUNTRIES.find(c => c.name === country).cities.map((cityName) => (
@@ -310,16 +311,8 @@ export default function BasecityHome() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
               <div style={{ height: '190px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
                 
-                {hasCheckedInToday ? (
-                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ fontSize: '50px' }}>💥</div>
-                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#10B981', backgroundColor: '#E6F4EA', padding: '5px 14px', borderRadius: '20px' }}>
-                      Today's Check-in Complete!
-                    </span>
-                  </div>
-                ) : balloon === 'idle' || balloon === 'popping' ? (
-                  
-                  /* DEVASA, PARLAYAN MAVİ BASE BALONU BUTONU */
+                {balloon === 'idle' || balloon === 'popping' ? (
+                  /* SINIRSIZ PATLAYABİLEN DEVASA BALON */
                   <button 
                     onClick={handlePopBalloon} 
                     disabled={txLoading}
@@ -341,15 +334,12 @@ export default function BasecityHome() {
                       transition: 'transform 0.2s, background-color 0.2s'
                     }}
                   >
-                    {/* Balon Düğümü (Altındaki minik üçgen çıkıntı) */}
                     <div style={{ position: 'absolute', bottom: '-10px', left: '50%', transform: 'translateX(-50%)', width: '0', height: '0', borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '10px solid #0052FF' }} />
-                    
                     <span style={{ fontSize: '30px', fontWeight: '900', letterSpacing: '1.5px', color: '#ffffff', textShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>BASE</span>
                     <span style={{ fontSize: '10px', fontWeight: '800', marginTop: '3px', color: '#93C5FD', textTransform: 'uppercase', letterSpacing: '1px' }}>POP IT!</span>
                   </button>
-
                 ) : (
-                  /* DEVASA COŞKULU PATLAMA ANI GÖRSELİ */
+                  /* DEVASA PATLAMA EFEKTİ */
                   <div style={{ fontSize: '80px', animation: 'megaExplosion 0.5s ease-out forwards', position: 'absolute' }}>
                     💥
                   </div>
@@ -362,7 +352,7 @@ export default function BasecityHome() {
                   {wallet.slice(0, 6)}...{wallet.slice(-4)}
                 </span>
                 <button 
-                  onClick={() => { setWallet(''); setUsername(''); setBalloon('idle'); setHasCheckedInToday(false); }}
+                  onClick={() => { setWallet(''); setUsername(''); setBalloon('idle'); }}
                   style={{ display: 'block', margin: '6px auto 0 auto', padding: '4px 10px', border: '1px solid #FF3B30', borderRadius: '6px', backgroundColor: 'transparent', color: '#FF3B30', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}
                 >
                   Disconnect
@@ -373,11 +363,11 @@ export default function BasecityHome() {
 
         </div>
 
-        {/* LİDERLİK TABLOSU */}
+        {/* LİDERLİK TABLOSU (SINIRSIZ YARIŞ MODU) */}
         <div style={{ marginTop: '10px', paddingTop: '12px', borderTop: '1px solid #EFEFEF' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
             <span style={{ fontSize: '14px' }}>🏆</span>
-            <span style={{ fontSize: '11px', color: '#111827', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top 3 Onchain Countries</span>
+            <span style={{ fontSize: '11px', color: '#111827', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top 3 Leaderboard</span>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

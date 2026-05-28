@@ -14,10 +14,8 @@ export default function BasecityHome() {
   const [country, setCountry] = useState('United States');
   const [city, setCity] = useState('');
 
-  const [balloon, setBalloon] = useState('idle');
+  const [balloon, setBalloon] = useState('idle'); // 'idle' veya 'popped'
   const [confetti, setConfetti] = useState([]);
-  
-  // Kullanıcının bugün check-in yapıp yapmadığını tutan durum
   const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
 
   const [leaderboard, setLeaderboard] = useState([
@@ -31,16 +29,15 @@ export default function BasecityHome() {
     setCity('');
   };
 
-  // Yerel hafızadan kullanıcının bugün check-in yapıp yapmadığını sorgulayan fonksiyon
   const checkDailyLimit = (userWallet) => {
     if (!userWallet) return;
     try {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD formatı
+      const today = new Date().toISOString().split('T')[0];
       const lastCheckIn = localStorage.getItem(`checkin_${userWallet.toLowerCase()}`);
       
       if (lastCheckIn === today) {
         setHasCheckedInToday(true);
-        setBalloon('popped'); // Bugün yaptıysa balonu patlamış göstererek kilitliyoruz
+        setBalloon('popped');
       } else {
         setHasCheckedInToday(false);
         setBalloon('idle');
@@ -93,7 +90,6 @@ export default function BasecityHome() {
     fetchRealContractData();
   }, []);
 
-  // Cüzdan adresi her değiştiğinde günlük limit hakkını yeniden kontrol et
   useEffect(() => {
     if (wallet) {
       checkDailyLimit(wallet);
@@ -139,35 +135,41 @@ export default function BasecityHome() {
     }
   }
 
+  // ETKİLEYİCİ GÖRSEL ŞÖLEN KONFETİ FONKSİYONU (Yoğunluğu artırıldı ve farklı boyutlar eklendi)
   function triggerConfetti() {
-    const colors = ['#0052FF', '#FF3B30', '#00D395', '#FFCC00', '#FF2D55'];
+    const colors = [
+      '#0052FF', '#3B82F6', '#60A5FA', // Base Mavisi tonları (Ağırlıklı)
+      '#00D395', '#FFCC00', '#FF2D55', '#A855F7' // Diğer canlı şölen renkleri
+    ];
     const tempConfetti = [];
-    for (let i = 0; i < 35; i++) {
+    
+    // Konfeti sayısı daha etkileyici bir şölen için 35'ten 85'e çıkarıldı!
+    for (let i = 0; i < 85; i++) {
+      const size = 6 + Math.random() * 8; // Farklı boyutlarda konfetiler (6px - 14px)
       tempConfetti.push({
         id: i,
         left: Math.random() * 100,
         color: colors[Math.floor(Math.random() * colors.length)],
-        delay: Math.random() * 0.4,
-        duration: 1.2 + Math.random() * 1
+        delay: Math.random() * 0.6, // Dağınık yağma efekti
+        duration: 1.5 + Math.random() * 1.5, // Farklı hızlarda düşüş
+        size: size,
+        shape: Math.random() > 0.4 ? '50%' : '0%' // Yuvarlak ve kare karışık
       });
     }
     setConfetti(tempConfetti);
-    setTimeout(() => setConfetti([]), 2500);
+    setTimeout(() => setConfetti([]), 4000); // Şölen süresi uzatıldı
   }
 
   async function handlePopBalloon() {
     if (balloon === 'popped' || txLoading || hasCheckedInToday) return;
 
     try {
-      // 1. Onchain Check-in işlemini başlat
       const txHash = await executeCheckIn(country); 
 
-      // 2. Günlük hak kaydı: Bugünün tarihini kullanıcının cüzdanına özel kaydet
       const today = new Date().toISOString().split('T')[0];
       localStorage.setItem(`checkin_${wallet.toLowerCase()}`, today);
       setHasCheckedInToday(true);
 
-      // 3. Optimistic UI: Sayıyı arayüzde beklemeden anlık artır
       setLeaderboard(prevList => 
         prevList.map(item => 
           item.name === country ? { ...item, count: item.count + 1 } : item
@@ -188,20 +190,32 @@ export default function BasecityHome() {
   return (
     <div style={{ padding: '20px 10px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
       
+      {/* ŞÖLEN KONFETİ YAPILARI */}
       {confetti.map((c) => (
         <div key={c.id} style={{
-          position: 'absolute', top: '-10px', left: `${c.left}%`,
-          width: '8px', height: '8px', backgroundColor: c.color,
-          borderRadius: Math.random() > 0.5 ? '50%' : '0%',
-          opacity: 0.8, pointerEvents: 'none', zIndex: 999,
-          animation: `fall ${c.duration}s linear ${c.delay}s forwards`
+          position: 'absolute', top: '-20px', left: `${c.left}%`,
+          width: `${c.size}px`, height: `${c.size}px`, backgroundColor: c.color,
+          borderRadius: c.shape,
+          opacity: 0.9, pointerEvents: 'none', zIndex: 999,
+          animation: `fallAndSpin ${c.duration}s linear ${c.delay}s forwards`
         }} />
       ))}
 
+      {/* Gelişmiş Dönen, Sağa Sola Sallanan Konfeti ve Parlama Efektleri */}
       <style>{`
-        @keyframes fall {
-          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
+        @keyframes fallAndSpin {
+          0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
+          50% { transform: translateY(50vh) rotate(180deg) translateX(15px); opacity: 0.9; }
+          100% { transform: translateY(105vh) rotate(360deg) translateX(-15px); opacity: 0; }
+        }
+        @keyframes basePulse {
+          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 82, 255, 0.5); }
+          70% { transform: scale(1.04); box-shadow: 0 0 20px 15px rgba(0, 82, 255, 0); }
+          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 82, 255, 0); }
+        }
+        @keyframes particleExplosion {
+          0% { transform: scale(0.8); opacity: 1; }
+          100% { transform: scale(2); opacity: 0; }
         }
       `}</style>
 
@@ -274,25 +288,46 @@ export default function BasecityHome() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-              <div style={{ height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
                 {hasCheckedInToday ? (
-                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-                    <div style={{ fontSize: '44px' }}>💥</div>
-                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#10B981', backgroundColor: '#E6F4EA', padding: '4px 12px', borderRadius: '20px' }}>
+                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ fontSize: '50px', animation: 'particleExplosion 1s ease-out forwards' }}>💥</div>
+                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#10B981', backgroundColor: '#E6F4EA', padding: '5px 14px', borderRadius: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
                       Today's Check-in Complete!
                     </span>
                   </div>
                 ) : balloon === 'idle' ? (
+                  /* MAVİ PARLAYAN DAİRESEL BASE BUTONU */
                   <button 
                     onClick={handlePopBalloon} 
                     disabled={txLoading}
-                    style={{ width: '110px', height: '110px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#fff', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 6px 16px rgba(0,82,255,0.2)' }}
+                    style={{ 
+                      width: '125px', 
+                      height: '125px', 
+                      borderRadius: '50%', 
+                      backgroundColor: '#0052FF', 
+                      color: '#ffffff', 
+                      border: '4px solid #ffffff', 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      cursor: 'pointer', 
+                      boxShadow: '0 10px 25px rgba(0, 82, 255, 0.35)',
+                      animation: 'basePulse 2s infinite ease-in-out',
+                      transition: 'transform 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                   >
-                    <span>🎈</span>
-                    <span style={{ fontSize: '10px', marginTop: '2px' }}>POP {country.toUpperCase()}</span>
+                    <span style={{ fontSize: '26px', fontWeight: '900', letterSpacing: '1px', color: '#fff', textShadow: '0 2px 4px rgba(0,0,0,0.15)' }}>BASE</span>
+                    <span style={{ fontSize: '9px', fontWeight: '700', textTransform: 'uppercase', marginTop: '2px', color: '#DBEAFE', opacity: 0.9 }}>POP IT!</span>
                   </button>
                 ) : (
-                  <div style={{ fontSize: '44px' }}>💥</div>
+                  /* PATLAMA ANI GÖRSEL ŞÖLENİ */
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'particleExplosion 0.6s ease-out forwards' }}>
+                    <div style={{ fontSize: '64px' }}>💥</div>
+                  </div>
                 )}
               </div>
 
@@ -313,7 +348,6 @@ export default function BasecityHome() {
 
         </div>
 
-        {/* KART İÇİ GERÇEK ZAMANLI İLK 3 ÜLKE WIDGET'I */}
         <div style={{ marginTop: '10px', paddingTop: '12px', borderTop: '1px solid #EFEFEF' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
             <span style={{ fontSize: '14px' }}>🏆</span>
@@ -322,7 +356,7 @@ export default function BasecityHome() {
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {leaderboard.map((item, index) => (
-              <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid #F1F3F5' }}>
+              <div key={item.name} style={{ display: 'flex', alignItems: 'center', justify: 'space-between', padding: '6px 10px', backgroundColor: '#F8F9FA', borderRadius: '8px', border: '1px solid #F1F3F5' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '13px' }}>{index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}</span>
                   <span style={{ fontSize: '12px', fontWeight: '600', color: '#333' }}>{item.flag} {item.name}</span>

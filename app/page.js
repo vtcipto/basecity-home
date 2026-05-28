@@ -280,8 +280,6 @@ export default function BasecityHome() {
         </div>
 
       </div>
-      {/* --- LİDERLİK TABLOSU (LEADERBOARD) BİTİŞİ --- */}
-
     </div>
   );
 }

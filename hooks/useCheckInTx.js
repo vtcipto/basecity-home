@@ -17,41 +17,16 @@ export function useCheckInTx() {
 
   const contractAddress = "0xdA9089321C252dA5B0ed2F51d175703dc45E042f";
 
-  // YENİ SAYAÇ FONKSİYONU: Blokzincirden ücretsiz okuma yapar
-  const getTotalCheckIns = async () => {
-    try {
-      const provider = sdk.wallet?.ethProvider;
-      if (!provider) return 0;
-
-      // totalCheckIns() fonksiyonunun seçici kodu (Method ID)
-      const totalCheckInsSelector = "0x899bc5a4";
-
-      const result = await provider.request({
-        method: "eth_call",
-        params: [
-          {
-            to: contractAddress,
-            data: totalCheckInsSelector
-          },
-          "latest"
-        ]
-      });
-
-      if (result && result !== "0x") {
-        return parseInt(result, 16);
-      }
-      return 0;
-    } catch (error) {
-      console.error("Failed to fetch global counter:", error);
-      return 0;
-    }
-  };
-
   const executeCheckIn = async (countryName) => {
+    // --- GÜVENLİK KİLİDİ: Eğer zaten bir işlem onay bekliyorsa yenisini başlatma ---
+    if (txLoading) return null;
+    
     setTxLoading(true);
     try {
       const provider = sdk.wallet?.ethProvider;
-      if (!provider) throw new Error("Warpcast wallet provider not found.");
+      if (!provider) {
+        throw new Error("Warpcast wallet provider not found.");
+      }
 
       const accounts = await provider.request({ method: 'eth_accounts' });
       const userAddress = accounts || accounts;
@@ -59,8 +34,9 @@ export function useCheckInTx() {
       const transactionData = encodeCheckInData(countryName);
       const ethAmountInHex = "0x9184e72a000"; // 0.00001 ETH
 
+      // Cüzdan isteğini gönder
       const txHash = await provider.request({
-        method: "eth_sendTransaction",
+        method: "0x" + "eth_sendTransaction".replace("0x", ""), // EIP-1193 temiz çağırma metodu
         params: [{
           from: userAddress,
           to: contractAddress,
@@ -71,11 +47,12 @@ export function useCheckInTx() {
 
       setTxLoading(false);
       return txHash;
+
     } catch (error) {
-      setTxLoading(false);
+      setTxLoading(false); // Kullanıcı reddederse kilidi kaldır
       throw error;
     }
   };
 
-  return { executeCheckIn, getTotalCheckIns, txLoading };
+  return { executeCheckIn, txLoading };
 }

@@ -37,17 +37,27 @@ export default function BasecityHome() {
   };
 
   // UYGULAMAYI WARPCAST ÜZERİNDE PAYLAŞTIRAN YENİ FONKSİYON (Cast Intent)
-    const handleShareApp = () => {
+      const handleShareApp = async () => {
     const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://vercel.app';
     const shareText = `I just checked-in to ${country}${city ? ` (${city})` : ''} on Basecity Home! 🎈✨ Come pop the giant BASE balloon and support your country on-chain! 🏆🔵`;
     const warpcastIntentUrl = `https://warpcast.com{encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(appUrl)}`;
     
-    if (typeof window !== 'undefined' && sdk && sdk.actions && typeof sdk.actions.openUrl === 'function') {
-      sdk.actions.openUrl(warpcastIntentUrl);
-    } else if (typeof window !== 'undefined') {
-      window.open(warpcastIntentUrl, '_blank');
+    try {
+      // Farcaster Mini App resmi SDK yönlendirmesi
+      if (typeof window !== 'undefined' && sdk?.actions) {
+        await sdk.actions.openUrl(warpcastIntentUrl);
+      } else if (typeof window !== 'undefined') {
+        window.open(warpcastIntentUrl, '_blank');
+      }
+    } catch (error) {
+      console.error("Farcaster share failed, trying fallback:", error);
+      // Eğer SDK hata verirse zorunlu tarayıcı tetiklemesi (Fallback)
+      if (typeof window !== 'undefined') {
+        window.location.href = warpcastIntentUrl;
+      }
     }
   };
+
 
 
   const fetchRealContractData = async () => {

@@ -12,36 +12,33 @@ export function useCheckInTx() {
         throw new Error("Warpcast wallet provider not found.");
       }
 
-      // Base Ağı USDC ve Test Amaçlı Mock Kontrat Bilgileri
-      const usdcAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bda02913"; 
-      const contractAddress = "0x0000000000000000000000000000000000000000"; // İleride gerçek kontrat gelecek
+      // Sizin yeni oluşturduğunuz akıllı sözleşme adresiniz
+      const contractAddress = "0xE4D8F2347d0B1d6A925B3CF3B8b0BFb0678E51d8"; 
 
       // Kullanıcının bağlı cüzdan adresini al
       const accounts = await provider.request({ method: 'eth_accounts' });
       const userAddress = accounts[0] || accounts;
 
-      // 0.01 USDC (10000 birim) harcama onayı (approve) verisi
-      const approveData = "0x095ea7b3" + 
-        contractAddress.substring(2).padStart(64, '0') + 
-        "0000000000000000000000000000000000000000000000000000000000002710";
+      // checkIn(string) fonksiyonu için akıllı sözleşme veri kodu (Data hex)
+      // Bu kod kontratınızdaki checkIn fonksiyonunu tetikler
+      const checkInFunctionSelector = "0xacbc4b3a"; 
+      
+      // 0.01 ETH değerinin Hex (onaltılık) karşılığı (0.01 ETH = 10000000000000000 wei)
+      const ethAmountInHex = "0x2386f26fc10000"; 
 
-      // Cüzdana ilk işlem onayını gönder (USDC Approve)
-      await provider.request({
+      // Doğrudan cüzdana ETH ödemeli tek bir işlem gönderiyoruz (Approve gerek yok!)
+      const txHash = await provider.request({
         method: "eth_sendTransaction",
         params: [{
           from: userAddress,
-          to: usdcAddress,
-          data: approveData
+          to: contractAddress,
+          value: ethAmountInHex, // 0.01 ETH kesinti
+          data: checkInFunctionSelector // Kontrat fonksiyon çağrısı
         }]
       });
 
-      alert("USDC Approved! Checking in now...");
-      
-      // Şimdilik test için sahte bir tx hash döndürüyoruz
-      const mockTxHash = "0xmocktxhash_" + Date.now(); 
-
       setTxLoading(false);
-      return mockTxHash;
+      return txHash;
 
     } catch (error) {
       setTxLoading(false);

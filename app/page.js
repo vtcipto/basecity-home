@@ -15,10 +15,8 @@ export default function BasecityHome() {
   const [city, setCity] = useState('');
 
   const [balloon, setBalloon] = useState('idle'); // 'idle', 'popping', 'popped'
-  const [confetti, setConfetti] = useState([]);
-  const [miniBalloons, setMiniBalloons] = useState([]); // Patlamada saçılacak küçük baloncuklar
+  const [baseFragments, setBaseFragments] = useState([]); // Dağılacak yavaş BASE parçacıkları
 
-  // Liderlik tablosu hafıza sorgusu
   const [leaderboard, setLeaderboard] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedLeaderboard = localStorage.getItem('basecity_leaderboard');
@@ -49,7 +47,7 @@ export default function BasecityHome() {
               return { 
                 name: c.name, 
                 count: Number(count) || 0, 
-                flag: c.code === 'TR' ? '🇹🇷' : c.code === 'US' ? '🇺🇸' : c.code === 'GB' ? '🇬🇧' : '🏳️'
+                flag: c.code === 'TR' ? '🇹🇷' : c.code === 'US' ? '🇺🇸' : '🏳️'
               };
             } catch (e) { return null; }
           })
@@ -75,7 +73,6 @@ export default function BasecityHome() {
     fetchRealContractData();
   }, []);
 
-  // BAĞLANTI ONAY PENCERESİ (window.confirm) TAMAMEN KALDIRILDI
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
@@ -88,9 +85,7 @@ export default function BasecityHome() {
       }
       const accounts = await provider.request({ method: 'eth_requestAccounts' });
       if (accounts && accounts.length > 0) {
-        const realUserAddress = accounts[0] || accounts;
-        
-        // Onay penceresi sormadan doğrudan bağlıyoruz:
+        const realUserAddress = accounts || accounts;
         const context = await sdk.context;
         if (context?.user) {
           setUsername(context.user.username || context.user.displayName || 'User');
@@ -107,47 +102,34 @@ export default function BasecityHome() {
     }
   }
 
-  // HEM KONFETİ HEM DE KÜÇÜK MAVİ BASE BALONCUKLARINI FİŞEKLİYEN ŞÖLEN FONKSİYONU
-  function triggerVisualFeast() {
-    const colors = ['#0052FF', '#3B82F6', '#1D4ED8', '#60A5FA', '#00D395', '#FFCC00', '#FF2D55'];
-    const tempConfetti = [];
-    const tempBalloons = [];
+  // YAVAŞÇA HER YERE DAĞILAN "BASE" YAZILI PARÇACIKLARIN SİMÜLASYONU
+  function triggerSlowMotionBurst() {
+    const fragments = [];
     
-    // 1. Klasik şölen konfetileri (90 adet)
-    for (let i = 0; i < 90; i++) {
-      tempConfetti.push({
-        id: i,
-        left: Math.random() * 100,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        delay: Math.random() * 0.6,
-        duration: 1.5 + Math.random() * 2,
-        size: 5 + Math.random() * 8,
-        shape: Math.random() > 0.4 ? '50%' : '0%'
+    // Ekranın her yerine homojen dağılması için 45 adet şık parçacık üretiyoruz
+    for (let i = 0; i < 45; i++) {
+      // Merkezden (Balonun olduğu yerden) ekranın her yerine dağılacak açılar ve yönler
+      const angle = (i * 8) + Math.random() * 10;
+      const radius = 80 + Math.random() * 260; // Ekranın dışına kadar yavaşça yayılma mesafesi
+      const moveX = Math.cos(angle * Math.PI / 180) * radius;
+      const moveY = Math.sin(angle * Math.PI / 180) * radius;
+      
+      fragments.push({
+        id: `base_frag_${i}`,
+        moveX: moveX,
+        moveY: moveY,
+        fontSize: 11 + Math.random() * 6, // Net okunabilir boyutlar (11px - 17px)
+        delay: Math.random() * 0.3,
+        duration: 3.5 + Math.random() * 2.0, // Süreyi uzatarak oldukça yavaşlattık (3.5s - 5.5s)
+        rotation: (Math.random() * 360) - 180
       });
     }
 
-    // 2. Patlamayla etrafa saçılan KÜÇÜK MAVİ BASE BALONCUKLARI (25 adet)
-    for (let i = 0; i < 25; i++) {
-      // Rastgele fırlama yönleri (X ekseninde sağa sola saçılma)
-      const drift = (Math.random() * 60) - 30; 
-      tempBalloons.push({
-        id: `mini_${i}`,
-        left: 35 + Math.random() * 30, // Kartın ortasından fırlayacaklar
-        drift: drift,
-        size: 15 + Math.random() * 15, // Küçük sevimli boyutlar (15px - 30px)
-        delay: Math.random() * 0.2,
-        duration: 1.2 + Math.random() * 1.5
-      });
-    }
-
-    setConfetti(tempConfetti);
-    setMiniBalloons(tempBalloons);
-
-    // Temizleme süreleri
-    setTimeout(() => { setConfetti([]); setMiniBalloons([]); }, 4000);
+    setBaseFragments(fragments);
+    // Animasyon tamamen bitene kadar ekranda kalmalarını sağlıyoruz
+    setTimeout(() => { setBaseFragments([]); }, 6000);
   }
 
-  // SUCCESS ALERT POP-UP PENCERESİ TAMAMEN KALDIRILDI
   async function handlePopBalloon() {
     if (balloon === 'popping' || txLoading) return;
     try {
@@ -170,10 +152,10 @@ export default function BasecityHome() {
       });
 
       setBalloon('popped');
-      triggerVisualFeast(); // Yeni şölen tetikleniyor
+      triggerSlowMotionBurst(); // Yavaş parçacık şöleni tetikleniyor
 
-      // Başarı yazısı (alert) kaldırıldı, doğrudan 3.5 saniye sonra balon yenileniyor
-      setTimeout(() => { setBalloon('idle'); }, 3500);
+      // Ağır çekim bittikten sonra (5 saniye) yeni balon zarifçe belirir
+      setTimeout(() => { setBalloon('idle'); }, 5000);
     } catch (err) {
       console.error(err);
       setBalloon('idle');
@@ -182,60 +164,60 @@ export default function BasecityHome() {
   return (
     <div style={{ padding: '20px 10px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
       
-      {/* ŞÖLEN KONFETİLERİ */}
-      {confetti.map((c) => (
-        <div key={c.id} style={{
-          position: 'absolute', top: '-20px', left: `${c.left}%`,
-          width: `${c.size}px`, height: `${c.size}px`, backgroundColor: c.color,
-          borderRadius: c.shape, opacity: 0.9, pointerEvents: 'none', zIndex: 999,
-          animation: `superFall ${c.duration}s linear ${c.delay}s forwards`
-        }} />
-      ))}
-
-      {/* PATLAYAN KÜÇÜK MAVİ BASE BALONCUKLARI */}
-      {miniBalloons.map((b) => (
-        <div key={b.id} style={{
-          position: 'absolute', top: '40%', left: `${b.left}%`,
-          width: `${b.size}px`, height: `${b.size}px`, backgroundColor: '#0052FF',
-          borderRadius: '50%', border: '2px solid #ffffff', opacity: 0.9,
-          pointerEvents: 'none', zIndex: 998, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', color: '#fff', fontSize: `${b.size / 3}px`,
-          fontWeight: 'bold', boxShadow: '0 4px 10px rgba(0,82,255,0.25)',
-          animation: `miniBalloonBurst ${b.duration}s cubic-bezier(0.1, 0.8, 0.3, 1) ${b.delay}s forwards`
+      {/* SLOW-MOTION OKUNABİLİR "BASE" PARÇACIKLARI */}
+      {baseFragments.map((f) => (
+        <div key={f.id} style={{
+          position: 'absolute', 
+          top: '45%', 
+          left: '50%',
+          backgroundColor: '#0052FF',
+          color: '#ffffff',
+          padding: '4px 9px',
+          borderRadius: '20px',
+          fontSize: `${f.fontSize}px`,
+          fontWeight: '900',
+          letterSpacing: '0.5px',
+          fontFamily: 'sans-serif',
+          boxShadow: '0 4px 12px rgba(0, 82, 255, 0.25)',
+          border: '1.5px solid #ffffff',
+          pointerEvents: 'none', 
+          zIndex: 999,
+          opacity: 1,
+          /* CSS değişkenleri ile her parçaya özel fırlama yönü tanımlıyoruz */
+          '--x': `${f.moveX}px`,
+          '--y': `${f.moveY}px`,
+          '--rot': `${f.rotation}deg`,
+          animation: `slowMotionScatter ${f.duration}s cubic-bezier(0.1, 0.8, 0.2, 1) ${f.delay}s forwards`
         }}>
-          B
+          BASE
         </div>
       ))}
 
-      {/* GELİŞMİŞ ŞÖLEN VE SAÇILMA ANİMASYONLARI */}
+      {/* SİNEMATİK AKIŞ VE BALON CSS BLOKLARI */}
       <style>{`
-        @keyframes superFall {
-          0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
-          50% { transform: translateY(50vh) rotate(180deg) translateX(20px); opacity: 0.9; }
-          100% { transform: translateY(105vh) rotate(360deg) translateX(0); opacity: 0; }
-        }
-        @keyframes miniBalloonBurst {
-          0% { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 1; }
-          15% { transform: translate(var(--drift-x, 30px), -60px) scale(1.2); }
-          100% { transform: translate(var(--drift-x, 50px), 100vh) scale(0.8) rotate(720deg); opacity: 0; }
+        @keyframes slowMotionScatter {
+          0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 1; filter: blur(2px); }
+          15% { filter: blur(0px); transform: translate(-50%, -50%) scale(1.1) rotate(20deg); }
+          80% { opacity: 1; }
+          100% { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(0.9) rotate(var(--rot)); opacity: 0; }
         }
         @keyframes balloonFloat {
           0%, 100% { transform: translateY(0) scale(1); }
-          50% { transform: translateY(-6px) scale(1.02); }
+          50% { transform: translateY(-5px) scale(1.02); }
         }
         @keyframes balloonPulse {
-          0% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0.6), 0 10px 20px rgba(0, 82, 255, 0.2); }
-          70% { box-shadow: 0 0 0 20px rgba(0, 82, 255, 0), 0 15px 30px rgba(0, 82, 255, 0.4); }
-          100% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0), 0 10px 20px rgba(0, 82, 255, 0.2); }
+          0% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0.5), 0 10px 20px rgba(0, 82, 255, 0.15); }
+          70% { box-shadow: 0 0 0 18px rgba(0, 82, 255, 0), 0 15px 25px rgba(0, 82, 255, 0.3); }
+          100% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0), 0 10px 20px rgba(0, 82, 255, 0.15); }
         }
         @keyframes balloonShake {
-          0%, 100% { transform: translateX(0) scale(1.1); }
-          20%, 60% { transform: translateX(-4px) scale(1.15); }
-          40%, 80% { transform: translateX(4px) scale(1.15); }
+          0%, 100% { transform: translateX(0) scale(1.08); }
+          25% { transform: translateX(-3px) scale(1.1); }
+          75% { transform: translateX(3px) scale(1.1); }
         }
-        @keyframes megaExplosion {
-          0% { transform: scale(0.4); opacity: 1; filter: brightness(1.6); }
-          100% { transform: scale(2.2); opacity: 0; filter: brightness(1); }
+        @keyframes smoothFadeOut {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(0) rotate(45deg); opacity: 0; }
         }
       `}</style>
 
@@ -309,7 +291,7 @@ export default function BasecityHome() {
               <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
                 
                 {balloon === 'idle' || balloon === 'popping' ? (
-                  /* DEV MAVİ BASE BALONU */
+                  /* ASİL VE DEV MAVİ BASE BALONU */
                   <button 
                     onClick={handlePopBalloon} 
                     disabled={txLoading}
@@ -336,14 +318,16 @@ export default function BasecityHome() {
                     <span style={{ fontSize: '10px', fontWeight: '800', marginTop: '3px', color: '#93C5FD', textTransform: 'uppercase', letterSpacing: '1px' }}>POP IT!</span>
                   </button>
                 ) : (
-                  /* ANA COŞKULU PATLAMA */
-                  <div style={{ fontSize: '80px', animation: 'megaExplosion 0.5s ease-out forwards', position: 'absolute' }}>
-                    💥
+                  /* SİNEMATİK YAVAŞÇA SİLİNEREK YOK OLMA ANI */
+                  <div style={{ 
+                    width: '140px', height: '140px', borderRadius: '50%', backgroundColor: '#0052FF', border: '5px solid #ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    animation: 'smoothFadeOut 0.7s ease-in forwards'
+                  }}>
+                    <span style={{ fontSize: '30px', fontWeight: '900', color: '#ffffff' }}>BASE</span>
                   </div>
                 )}
               </div>
               
-              {/* Çıkış Yapma Butonu (Cüzdan adresi alanı tamamen silindi, sadece küçük gizli bir çıkış linki bırakıldı) */}
               <button 
                 onClick={() => { setWallet(''); setUsername(''); setBalloon('idle'); }}
                 style={{ background: 'none', border: 'none', color: '#A1A1AA', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}
@@ -355,7 +339,7 @@ export default function BasecityHome() {
 
         </div>
 
-        {/* REKABET LİDERLİK TABLOSU */}
+        {/* REKABET LIDERLIK TABLOSU */}
         <div style={{ marginTop: '10px', paddingTop: '12px', borderTop: '1px solid #EFEFEF' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
             <span style={{ fontSize: '14px' }}>🏆</span>

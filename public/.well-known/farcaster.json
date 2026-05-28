@@ -1,19 +1,19 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOiA0ODg4MDgsICJ0eXBlIjogImN1c3RvZHkiLCAia2V5IjogIjB4MDAwLi4uIn0",
-    "payload": "eyJkb21haW4iOiAiYmFzZWNpdHktaG9tZS52ZXJjZWwuYXBwIn0",
-    "signature": "MHgwMDAuLi4="
+    "header": "eyJmaWQiOjUxNjU2NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUyQjNFMmZFRWQ2OTcyQjM0Q0NDQzg4YzlBOWUxMDAyZjQxNjE5MjAifQ",
+    "payload": "eyJkb21haW4iOiJiYXNlY2l0eS1ob21lLnZlcmNlbC5hcHAifQ",
+    "signature": "O7q0tNFUpiWnmtZO46FfnkW34w/dhBBnHrxNXw4yuck9XiI5rghU6VyzLk37PjjeLZrt9WtDD8wAxS7kSVx1qRs="
   },
   "frame": {
     "version": "1",
     "name": "Basecity Home",
-    "iconUrl": "https://basecity-home.vercel",
-    "homeUrl": "https://basecity-home.vercel",
-    "imageUrl": "https://basecity-home.vercel/image.png",
+    "iconUrl": "https://basecity-home.vercel.app",
+    "homeUrl": "https://basecity-home.vercel.app",
+    "imageUrl": "https://basecity-home.vercel.app/image.png",
     "buttonTitle": "Check-In",
-    "webhookUrl": "https://basecity-home.vercel/api/webhook",
+    "webhookUrl": "https://basecity-home.vercel.app/api/webhook",
     "redirectUrls": [
-      "https://basecity-home.vercel",
+      "https://basecity-home.vercel.app",
       "https://basecity-home.vercel/",
       "https://warpcast.com",
       "https://warpcast.com"

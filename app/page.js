@@ -16,17 +16,14 @@ export default function BasecityHome() {
 
   const [balloon, setBalloon] = useState('idle'); // 'idle', 'popping', 'popped'
   const [confetti, setConfetti] = useState([]);
+  const [miniBalloons, setMiniBalloons] = useState([]); // Patlamada saçılacak küçük baloncuklar
 
-  // Liderlik tablosunun başlangıç verilerini tarayıcı hafızasından güvenli bir şekilde yüklüyoruz
+  // Liderlik tablosu hafıza sorgusu
   const [leaderboard, setLeaderboard] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedLeaderboard = localStorage.getItem('basecity_leaderboard');
       if (savedLeaderboard) {
-        try {
-          return JSON.parse(savedLeaderboard);
-        } catch (e) {
-          console.error("Hafızadan liderlik tablosu okunamadı:", e);
-        }
+        try { return JSON.parse(savedLeaderboard); } catch (e) { console.error(e); }
       }
     }
     return [
@@ -44,7 +41,6 @@ export default function BasecityHome() {
   const fetchRealContractData = async () => {
     try {
       let updatedLeaderboard = [];
-      
       if (typeof getTotalCheckIns === 'function') {
         updatedLeaderboard = await Promise.all(
           ALL_COUNTRIES.map(async (c) => {
@@ -53,50 +49,33 @@ export default function BasecityHome() {
               return { 
                 name: c.name, 
                 count: Number(count) || 0, 
-                flag: c.code === 'TR' ? '🇹🇷' : c.code === 'US' ? '🇺🇸' : c.code === 'GB' ? '🇬🇧' : c.code === 'DE' ? '🇩🇪' : c.code === 'FR' ? '🇫🇷' : c.code === 'JP' ? '🇯🇵' : c.code === 'BR' ? '🇧🇷' : c.code === 'CA' ? '🇨🇦' : '🏳️'
+                flag: c.code === 'TR' ? '🇹🇷' : c.code === 'US' ? '🇺🇸' : c.code === 'GB' ? '🇬🇧' : '🏳️'
               };
-            } catch (e) {
-              return null;
-            }
+            } catch (e) { return null; }
           })
         );
         updatedLeaderboard = updatedLeaderboard.filter(Boolean);
       }
-
       if (updatedLeaderboard.length === 0) {
         const saved = localStorage.getItem('basecity_leaderboard');
-        if (saved) {
-          updatedLeaderboard = JSON.parse(saved);
-        } else {
-          return;
-        }
+        if (saved) updatedLeaderboard = JSON.parse(saved);
+        else return;
       }
-
-      const sortedTop3 = updatedLeaderboard
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 3);
-
+      const sortedTop3 = updatedLeaderboard.sort((a, b) => b.count - a.count).slice(0, 3);
       setLeaderboard(sortedTop3);
       localStorage.setItem('basecity_leaderboard', JSON.stringify(sortedTop3));
-    } catch (err) {
-      console.error("Liderlik tablosu güncellenirken hata oluştu:", err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   useEffect(() => {
     async function initFarcaster() {
-      try {
-        if (typeof window !== 'undefined') {
-          await sdk.actions.ready();
-        }
-      } catch (err) {
-        console.warn("Farcaster context initialization skipped.");
-      }
+      try { if (typeof window !== 'undefined') await sdk.actions.ready(); } catch (err) { console.warn(err); }
     }
     initFarcaster();
     fetchRealContractData();
   }, []);
 
+  // BAĞLANTI ONAY PENCERESİ (window.confirm) TAMAMEN KALDIRILDI
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
@@ -107,18 +86,11 @@ export default function BasecityHome() {
         setLoading(false);
         return;
       }
-
-      const accounts = await provider.request({ 
-        method: 'eth_requestAccounts' 
-      });
-
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
       if (accounts && accounts.length > 0) {
-        const realUserAddress = accounts || accounts;
-        const isAuthorized = window.confirm(
-          `Connect Basecity Home with your wallet?\n\nAddress:\n${realUserAddress}`
-        );
-        if (!isAuthorized) { setLoading(false); return; }
-
+        const realUserAddress = accounts[0] || accounts;
+        
+        // Onay penceresi sormadan doğrudan bağlıyoruz:
         const context = await sdk.context;
         if (context?.user) {
           setUsername(context.user.username || context.user.displayName || 'User');
@@ -129,101 +101,127 @@ export default function BasecityHome() {
         setWallet(realUserAddress);
       }
     } catch (error) {
-      console.error("Wallet connection failed:", error);
-      alert("Wallet connection rejected by user.");
+      console.error(error);
     } finally {
       setLoading(false);
     }
   }
 
-  function triggerConfetti() {
-    const colors = ['#0052FF', '#3B82F6', '#1D4ED8', '#60A5FA', '#00D395', '#FFCC00', '#FF2D55', '#A855F7'];
+  // HEM KONFETİ HEM DE KÜÇÜK MAVİ BASE BALONCUKLARINI FİŞEKLİYEN ŞÖLEN FONKSİYONU
+  function triggerVisualFeast() {
+    const colors = ['#0052FF', '#3B82F6', '#1D4ED8', '#60A5FA', '#00D395', '#FFCC00', '#FF2D55'];
     const tempConfetti = [];
-    for (let i = 0; i < 120; i++) {
-      const size = 6 + Math.random() * 12;
+    const tempBalloons = [];
+    
+    // 1. Klasik şölen konfetileri (90 adet)
+    for (let i = 0; i < 90; i++) {
       tempConfetti.push({
         id: i,
         left: Math.random() * 100,
         color: colors[Math.floor(Math.random() * colors.length)],
-        delay: Math.random() * 0.8,
-        duration: 1.5 + Math.random() * 2.5,
-        size: size,
+        delay: Math.random() * 0.6,
+        duration: 1.5 + Math.random() * 2,
+        size: 5 + Math.random() * 8,
         shape: Math.random() > 0.4 ? '50%' : '0%'
       });
     }
+
+    // 2. Patlamayla etrafa saçılan KÜÇÜK MAVİ BASE BALONCUKLARI (25 adet)
+    for (let i = 0; i < 25; i++) {
+      // Rastgele fırlama yönleri (X ekseninde sağa sola saçılma)
+      const drift = (Math.random() * 60) - 30; 
+      tempBalloons.push({
+        id: `mini_${i}`,
+        left: 35 + Math.random() * 30, // Kartın ortasından fırlayacaklar
+        drift: drift,
+        size: 15 + Math.random() * 15, // Küçük sevimli boyutlar (15px - 30px)
+        delay: Math.random() * 0.2,
+        duration: 1.2 + Math.random() * 1.5
+      });
+    }
+
     setConfetti(tempConfetti);
-    setTimeout(() => setConfetti([]), 4500);
+    setMiniBalloons(tempBalloons);
+
+    // Temizleme süreleri
+    setTimeout(() => { setConfetti([]); setMiniBalloons([]); }, 4000);
   }
 
+  // SUCCESS ALERT POP-UP PENCERESİ TAMAMEN KALDIRILDI
   async function handlePopBalloon() {
     if (balloon === 'popping' || txLoading) return;
-
     try {
       setBalloon('popping');
-      const txHash = await executeCheckIn(country); 
+      await executeCheckIn(country); 
 
-      // TEST MODU: Sayıyı anlık artırıp yerel hafızaya sınırsızca yazıyoruz
       setLeaderboard(prevList => {
         const exists = prevList.some(item => item.name === country);
         let newList = [];
-        
         if (exists) {
-          newList = prevList.map(item => 
-            item.name === country ? { ...item, count: item.count + 1 } : item
-          );
+          newList = prevList.map(item => item.name === country ? { ...item, count: item.count + 1 } : item);
         } else {
           const countryObj = ALL_COUNTRIES.find(c => c.name === country);
-          const flag = countryObj?.code === 'TR' ? '🇹🇷' : countryObj?.code === 'US' ? '🇺🇸' : countryObj?.code === 'GB' ? '🇬🇧' : '🏳️';
+          const flag = countryObj?.code === 'TR' ? '🇹🇷' : countryObj?.code === 'US' ? '🇺🇸' : '🏳️';
           newList = [...prevList, { name: country, count: 1, flag: flag }];
         }
-        
         const sorted = newList.sort((a, b) => b.count - a.count).slice(0, 3);
         localStorage.setItem('basecity_leaderboard', JSON.stringify(sorted));
         return sorted;
       });
 
       setBalloon('popped');
-      triggerConfetti();
+      triggerVisualFeast(); // Yeni şölen tetikleniyor
 
-      // TEST MODU: 4 saniye sonra balonu tekrar şişiriyoruz ki arka arkaya test edebilesiniz!
-      setTimeout(() => {
-        setBalloon('idle');
-      }, 4000);
-
-      setTimeout(() => {
-        alert(`Success! Checked-in to ${country} 🚀\nTx: ${txHash}`);
-      }, 200);
+      // Başarı yazısı (alert) kaldırıldı, doğrudan 3.5 saniye sonra balon yenileniyor
+      setTimeout(() => { setBalloon('idle'); }, 3500);
     } catch (err) {
       console.error(err);
       setBalloon('idle');
-      alert("Transaction rejected or failed.");
     }
   }
   return (
     <div style={{ padding: '20px 10px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
       
+      {/* ŞÖLEN KONFETİLERİ */}
       {confetti.map((c) => (
         <div key={c.id} style={{
           position: 'absolute', top: '-20px', left: `${c.left}%`,
           width: `${c.size}px`, height: `${c.size}px`, backgroundColor: c.color,
-          borderRadius: c.shape,
-          opacity: 0.95, pointerEvents: 'none', zIndex: 999,
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          borderRadius: c.shape, opacity: 0.9, pointerEvents: 'none', zIndex: 999,
           animation: `superFall ${c.duration}s linear ${c.delay}s forwards`
         }} />
       ))}
 
+      {/* PATLAYAN KÜÇÜK MAVİ BASE BALONCUKLARI */}
+      {miniBalloons.map((b) => (
+        <div key={b.id} style={{
+          position: 'absolute', top: '40%', left: `${b.left}%`,
+          width: `${b.size}px`, height: `${b.size}px`, backgroundColor: '#0052FF',
+          borderRadius: '50%', border: '2px solid #ffffff', opacity: 0.9,
+          pointerEvents: 'none', zIndex: 998, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', color: '#fff', fontSize: `${b.size / 3}px`,
+          fontWeight: 'bold', boxShadow: '0 4px 10px rgba(0,82,255,0.25)',
+          animation: `miniBalloonBurst ${b.duration}s cubic-bezier(0.1, 0.8, 0.3, 1) ${b.delay}s forwards`
+        }}>
+          B
+        </div>
+      ))}
+
+      {/* GELİŞMİŞ ŞÖLEN VE SAÇILMA ANİMASYONLARI */}
       <style>{`
         @keyframes superFall {
           0% { transform: translateY(0) rotate(0deg) translateX(0); opacity: 1; }
-          35% { transform: translateY(35vh) rotate(120deg) translateX(25px); }
-          70% { transform: translateY(70vh) rotate(240deg) translateX(-25px); opacity: 0.9; }
+          50% { transform: translateY(50vh) rotate(180deg) translateX(20px); opacity: 0.9; }
           100% { transform: translateY(105vh) rotate(360deg) translateX(0); opacity: 0; }
         }
+        @keyframes miniBalloonBurst {
+          0% { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 1; }
+          15% { transform: translate(var(--drift-x, 30px), -60px) scale(1.2); }
+          100% { transform: translate(var(--drift-x, 50px), 100vh) scale(0.8) rotate(720deg); opacity: 0; }
+        }
         @keyframes balloonFloat {
-          0% { transform: translateY(0) scale(1); }
+          0%, 100% { transform: translateY(0) scale(1); }
           50% { transform: translateY(-6px) scale(1.02); }
-          100% { transform: translateY(0) scale(1); }
         }
         @keyframes balloonPulse {
           0% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0.6), 0 10px 20px rgba(0, 82, 255, 0.2); }
@@ -236,13 +234,12 @@ export default function BasecityHome() {
           40%, 80% { transform: translateX(4px) scale(1.15); }
         }
         @keyframes megaExplosion {
-          0% { transform: scale(0.5); opacity: 1; filter: brightness(1.5); }
-          50% { transform: scale(1.6); opacity: 0.8; filter: brightness(2); }
-          100% { transform: scale(2.5); opacity: 0; filter: brightness(1); }
+          0% { transform: scale(0.4); opacity: 1; filter: brightness(1.6); }
+          100% { transform: scale(2.2); opacity: 0; filter: brightness(1); }
         }
       `}</style>
 
-      <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', minHeight: '75vh', borderRadius: '24px', padding: '25px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #eef0f2', zIndex: 10 }}>
+      <div style={{ backgroundColor: '#ffffff', width: '100%', maxWidth: '420px', minHeight: '70vh', borderRadius: '24px', padding: '25px 20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #eef0f2', zIndex: 10 }}>
         
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: '32px', color: '#0052FF', fontWeight: '800', margin: '0' }}>Basecity Home</h1>
@@ -309,16 +306,16 @@ export default function BasecityHome() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-              <div style={{ height: '190px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
+              <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
                 
                 {balloon === 'idle' || balloon === 'popping' ? (
-                  /* SINIRSIZ PATLAYABİLEN DEVASA BALON */
+                  /* DEV MAVİ BASE BALONU */
                   <button 
                     onClick={handlePopBalloon} 
                     disabled={txLoading}
                     style={{ 
-                      width: '145px', 
-                      height: '145px', 
+                      width: '140px', 
+                      height: '140px', 
                       borderRadius: '50%', 
                       backgroundColor: '#0052FF', 
                       color: '#ffffff', 
@@ -331,7 +328,7 @@ export default function BasecityHome() {
                       position: 'relative',
                       boxShadow: '0 12px 30px rgba(0, 82, 255, 0.4)',
                       animation: balloon === 'popping' ? 'balloonShake 0.4s infinite' : 'balloonFloat 3s infinite ease-in-out, balloonPulse 2s infinite ease-in-out',
-                      transition: 'transform 0.2s, background-color 0.2s'
+                      transition: 'transform 0.2s'
                     }}
                   >
                     <div style={{ position: 'absolute', bottom: '-10px', left: '50%', transform: 'translateX(-50%)', width: '0', height: '0', borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '10px solid #0052FF' }} />
@@ -339,31 +336,26 @@ export default function BasecityHome() {
                     <span style={{ fontSize: '10px', fontWeight: '800', marginTop: '3px', color: '#93C5FD', textTransform: 'uppercase', letterSpacing: '1px' }}>POP IT!</span>
                   </button>
                 ) : (
-                  /* DEVASA PATLAMA EFEKTİ */
+                  /* ANA COŞKULU PATLAMA */
                   <div style={{ fontSize: '80px', animation: 'megaExplosion 0.5s ease-out forwards', position: 'absolute' }}>
                     💥
                   </div>
                 )}
               </div>
-
-              <div style={{ width: '100%', border: '1px solid #EAEAEA', borderRadius: '12px', padding: '8px', textAlign: 'center' }}>
-                <span style={{ fontSize: '11px', fontWeight: '700', color: '#0052FF' }}>● Connected: </span>
-                <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#666' }}>
-                  {wallet.slice(0, 6)}...{wallet.slice(-4)}
-                </span>
-                <button 
-                  onClick={() => { setWallet(''); setUsername(''); setBalloon('idle'); }}
-                  style={{ display: 'block', margin: '6px auto 0 auto', padding: '4px 10px', border: '1px solid #FF3B30', borderRadius: '6px', backgroundColor: 'transparent', color: '#FF3B30', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}
-                >
-                  Disconnect
-                </button>
-              </div>
+              
+              {/* Çıkış Yapma Butonu (Cüzdan adresi alanı tamamen silindi, sadece küçük gizli bir çıkış linki bırakıldı) */}
+              <button 
+                onClick={() => { setWallet(''); setUsername(''); setBalloon('idle'); }}
+                style={{ background: 'none', border: 'none', color: '#A1A1AA', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Disconnect Account
+              </button>
             </div>
           )}
 
         </div>
 
-        {/* LİDERLİK TABLOSU (SINIRSIZ YARIŞ MODU) */}
+        {/* REKABET LİDERLİK TABLOSU */}
         <div style={{ marginTop: '10px', paddingTop: '12px', borderTop: '1px solid #EFEFEF' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
             <span style={{ fontSize: '14px' }}>🏆</span>

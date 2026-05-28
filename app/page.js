@@ -16,10 +16,11 @@ export default function BasecityHome() {
 
   const [balloon, setBalloon] = useState('idle');
   const [confetti, setConfetti] = useState([]);
+
   const handleCountryChange = (countryName) => {
-  setCountry(countryName);
-  setCity(''); // Ülke değişince eski seçili şehri temizler
-};
+    setCountry(countryName);
+    setCity('');
+  };
 
   useEffect(() => {
     async function initFarcaster() {
@@ -34,7 +35,6 @@ export default function BasecityHome() {
     initFarcaster();
   }, []);
 
-  // BURASI AZ ÖNCE ÇALIŞAN ORİJİNAL KOD - ASLA DOKUNULMADI
   async function handleConnect() {
     if (loading) return;
     setLoading(true);
@@ -74,18 +74,6 @@ export default function BasecityHome() {
     }
   }
 
-  const countries = [
-    { code: 'US', name: 'United States', flag: '🇺🇸' },
-    { code: 'TR', name: 'Türkiye', flag: '🇹🇷' },
-    { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
-    { code: 'DE', name: 'Germany', flag: '🇩🇪' },
-    { code: 'FR', name: 'France', flag: '🇫🇷' },
-    { code: 'JP', name: 'Japan', flag: '🇯🇵' },
-    { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
-    { code: 'CA', name: 'Canada', flag: '🇨🇦' },
-    { code: 'AU', name: 'Australia', flag: '🇦🇺' }
-  ];
-
   function triggerConfetti() {
     const colors = ['#0052FF', '#FF3B30', '#00D395', '#FFCC00', '#FF2D55'];
     const tempConfetti = [];
@@ -102,17 +90,13 @@ export default function BasecityHome() {
     setTimeout(() => setConfetti([]), 2500);
   }
 
-    async function handlePopBalloon() {
+  async function handlePopBalloon() {
     if (balloon === 'popped' || txLoading) return;
 
     try {
-      // Cüzdandan tx onayı istenir
       const txHash = await executeCheckIn(country); 
-
-      // İşlem onaylanırsa balon patlar
       setBalloon('popped');
       triggerConfetti();
-
       setTimeout(() => {
         alert(`Success! Checked-in to ${country} 🚀\nTx: ${txHash}`);
       }, 200);
@@ -121,7 +105,6 @@ export default function BasecityHome() {
       alert("Transaction rejected or failed.");
     }
   }
-
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f4f5f6', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
       
@@ -134,47 +117,6 @@ export default function BasecityHome() {
           animation: `fall ${c.duration}s linear ${c.delay}s forwards`
         }} />
       ))}
-      
-<div style={{ margin: '20px 0', padding: '15px', background: '#ffffff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '300px' }}>
-  
-  {/* Ülke Seçimi */}
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-    <label style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>Ülke Seçin:</label>
-    <select 
-      value={country}
-      onChange={(e) => handleCountryChange(e.target.value)}
-      style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px', outline: 'none' }}
-    >
-      <option value="">-- Ülke Seçiniz --</option>
-      {ALL_COUNTRIES.map((c) => (
-        <option key={c.code} value={c.name}>
-          {c.name}
-        </option>
-      ))}
-    </select>
-  </div>
-
-  {/* Şehir Seçimi (Sadece seçilen ülkenin şehirleri varsa görünür) */}
-  {ALL_COUNTRIES.find(c => c.name === country)?.cities && (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <label style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>Şehir Seçin:</label>
-      <select 
-        value={city}
-        onChange={(e) => setCity(e.target.value)}
-        style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px', outline: 'none' }}
-      >
-        <option value="">-- Şehir Seçiniz --</option>
-        {ALL_COUNTRIES.find(c => c.name === country).cities.map((cityName) => (
-          <option key={cityName} value={cityName}>
-            {cityName}
-          </option>
-        ))}
-      </select>
-    </div>
-  )}
-
-</div>
-{/* --- ÜLKE VE ŞEHİR SEÇİM ALANI BİTİŞİ --- */}
 
       <style>{`
         @keyframes fall {
@@ -200,31 +142,63 @@ export default function BasecityHome() {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center', margin: '15px 0' }}>
-          {!wallet ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
-              <button onClick={handleConnect} disabled={loading} style={{ width: '140px', height: '140px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#ffffff', border: 'none', fontSize: '32px', fontWeight: '900', cursor: 'pointer', boxShadow: '0 12px 28px rgba(0, 82, 255, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0' }}>
-                {loading ? '...' : 'Base'}
-              </button>
-              <p style={{ color: '#0052FF', fontSize: '16px', fontWeight: '700', margin: '0' }}>Connect Farcaster Wallet</p>
+        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'center', margin: '15px 0', gap: '20px' }}>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '12px', fontWeight: '700', color: '#666', textTransform: 'uppercase' }}>Select Your Country:</label>
+              <select 
+                value={country}
+                onChange={(e) => handleCountryChange(e.target.value)}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #e2e8f0', fontSize: '14px', outline: 'none', backgroundColor: '#fff', fontWeight: '500', color: '#333' }}
+              >
+                <option value="">-- Ülke Seçiniz --</option>
+                {ALL_COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', width: '100%' }}>
-              
-              <div style={{ width: '100%', border: '1px solid #EAEAEA', borderRadius: '12px', padding: '12px' }}>
-                <label style={{ fontSize: '12px', fontWeight: '700', color: '#666', display: 'block', marginBottom: '6px' }}>SELECT YOUR COUNTRY:</label>
-                <select value={country} onChange={(e) => { setCountry(e.target.value); setBalloon('idle'); }} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', backgroundColor: '#fff', fontSize: '14px', fontWeight: '600' }}>
-                  {countries.map((c) => (
-                    <option key={c.code} value={c.name}>
-                      {c.name} {c.flag}
+
+            {ALL_COUNTRIES.find(c => c.name === country)?.cities && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: '#0052FF', textTransform: 'uppercase' }}>Select Your City:</label>
+                <select 
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #0052FF', fontSize: '14px', outline: 'none', backgroundColor: '#fff', fontWeight: '500', color: '#333' }}
+                >
+                  <option value="">-- Şehir Seçiniz --</option>
+                  {ALL_COUNTRIES.find(c => c.name === country).cities.map((cityName) => (
+                    <option key={cityName} value={cityName}>
+                      {cityName}
                     </option>
                   ))}
                 </select>
               </div>
-
-              <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+            )}
+          </div>
+          {!wallet ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', marginTop: '15px' }}>
+              <button 
+                onClick={handleConnect} 
+                disabled={loading} 
+                style={{ width: '140px', height: '140px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#ffffff', border: 'none', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0, 82, 255, 0.3)' }}
+              >
+                {loading ? 'Connecting...' : 'Connect Wallet'}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+              <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {balloon === 'idle' ? (
-                  <button onClick={handlePopBalloon} style={{ width: '130px', height: '130px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#fff', border: 'none', fontWeight: '800', fontSize: '14px', cursor: 'pointer', boxShadow: '0 10px 25px rgba(0,82,255,0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0' }}>
+                  <button 
+                    onClick={handlePopBalloon} 
+                    disabled={txLoading}
+                    style={{ width: '130px', height: '130px', borderRadius: '50%', backgroundColor: '#0052FF', color: '#fff', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 8px 20px rgba(0,82,255,0.2)' }}
+                  >
                     <span>🎈</span>
                     <span style={{ fontSize: '11px', marginTop: '4px' }}>POP {country.toUpperCase()}</span>
                   </button>
@@ -233,17 +207,27 @@ export default function BasecityHome() {
                 )}
               </div>
 
-              <div style={{ width: '100%', border: '1px solid #EAEAEA', borderRadius: '12px', padding: '10px 14px', backgroundColor: '#fcfcfc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', fontWeight: '700', color: '#0052FF' }}>● Connected</span>
-                <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#666' }}>{wallet.substring(0, 6)}...{wallet.substring(wallet.length - 4)}</span>
+              <div style={{ width: '100%', border: '1px solid #EAEAEA', borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#0052FF' }}>● Connected: </span>
+                <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#666' }}>
+                  {wallet.slice(0, 6)}...{wallet.slice(-4)}
+                </span>
+                <button 
+                  onClick={() => { setWallet(''); setUsername(''); setBalloon('idle'); }}
+                  style={{ display: 'block', margin: '10px auto 0 auto', padding: '6px 12px', border: '1px solid #FF3B30', borderRadius: '6px', backgroundColor: 'transparent', color: '#FF3B30', fontSize: '12px', cursor: 'pointer', fontWeight: '600' }}
+                >
+                  Disconnect
+                </button>
               </div>
-
-              <button onClick={() => { setWallet(''); setUsername(''); setBalloon('idle'); }} style={{ backgroundColor: 'transparent', color: '#FF3B30', border: '1px solid #FF3B30', padding: '10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', width: '100%', cursor: 'pointer' }}>Disconnect</button>
             </div>
           )}
+
         </div>
 
-        <div style={{ fontSize: '11px', color: '#A1A1AA', fontWeight: '500', textAlign: 'center' }}>Secured by Farcaster Identity</div>
+        <div style={{ fontSize: '11px', color: '#A1A1AA', fontWeight: '500', textAlign: 'center', marginTop: '15px' }}>
+          Secured by Farcaster Identity
+        </div>
+
       </div>
     </div>
   );

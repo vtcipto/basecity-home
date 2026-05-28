@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import sdk from '@farcaster/frame-sdk';
+import { useCheckInTx } from '../hooks/useCheckInTx';
 
 export default function BasecityHome() {
+  const { executeCheckIn, txLoading } = useCheckInTx();
   const [wallet, setWallet] = useState('');
   const [username, setUsername] = useState('');
   const [pfpUrl, setPfpUrl] = useState('');
@@ -93,13 +95,24 @@ export default function BasecityHome() {
     setTimeout(() => setConfetti([]), 2500);
   }
 
-  function handlePopBalloon() {
-    if (balloon === 'popped') return;
-    setBalloon('popped');
-    triggerConfetti();
-    setTimeout(() => {
-      alert(`Balloon Popped! Checked-in to ${country} 🚀`);
-    }, 200);
+    async function handlePopBalloon() {
+    if (balloon === 'popped' || txLoading) return;
+
+    try {
+      // Cüzdandan tx onayı istenir
+      const txHash = await executeCheckIn(country); 
+
+      // İşlem onaylanırsa balon patlar
+      setBalloon('popped');
+      triggerConfetti();
+
+      setTimeout(() => {
+        alert(`Success! Checked-in to ${country} 🚀\nTx: ${txHash}`);
+      }, 200);
+    } catch (err) {
+      console.error(err);
+      alert("Transaction rejected or failed.");
+    }
   }
 
   return (
